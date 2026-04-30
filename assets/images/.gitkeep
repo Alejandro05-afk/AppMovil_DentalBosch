@@ -1,0 +1,9 @@
+# assets/images/
+# Coloca aqu\u00ed las im\u00e1genes de la app (logo, iconos, ilustraciones, etc.)
+#
+# Formatos recomendados: PNG (iconos), SVG (vectores con react-native-svg)
+#
+# Ejemplos:
+#   logo.png          - Logo principal de la app
+#   logo-white.png    - Logo versi\u00f3n blanca
+#   onboarding-*.png  - Im\u00e1genes de pantallas de bienvenida

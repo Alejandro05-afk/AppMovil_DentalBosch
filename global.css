@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white rounded-xl py-3 px-6 shadow-soft;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-white rounded-xl py-3 px-6 shadow-soft;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary rounded-xl py-3 px-6 bg-transparent;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-primary py-3 px-6;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-white rounded-xl py-3 px-6 shadow-soft;
+  }
+}
