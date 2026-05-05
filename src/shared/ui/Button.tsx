@@ -99,6 +99,9 @@ export const Button: React.FC<ButtonProps> = ({
       style={[
         variantStyles[variant],
         {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
           paddingVertical: s.paddingVertical,
           paddingHorizontal: s.paddingHorizontal,
         },

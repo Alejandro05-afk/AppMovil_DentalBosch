@@ -5,4 +5,6 @@ export { ErrorScreen } from './ErrorScreen';
 export { EmptyState } from './EmptyState';
 export { Card } from './Card';
 export { Divider } from './Divider';
+export { OtpInput } from './OtpInput';
+export { DatePicker } from './DatePicker';
 export { colors, spacing, borderRadius, shadows } from './theme';

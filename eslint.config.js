@@ -7,6 +7,11 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    rules: {
+      'react/no-children-prop': 'off',
+    },
+  },
 
   // FSD boundary: @shared — no imports de capas superiores
   {

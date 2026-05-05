@@ -7,23 +7,35 @@ import {
   Platform,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, Button, colors, spacing, Card } from '@/shared/ui';
+import { authService } from '@/entities/auth/api/auth.service';
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  const handleSendRecovery = () => {
+  const handleSendRecovery = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Por favor ingresa un correo electrónico.');
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await authService.recuperarPassword(email);
       setEmailSent(true);
-    }, 1500);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Ocurrió un error al intentar enviar el correo de recuperación.';
+      Alert.alert('Error', message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (emailSent) {

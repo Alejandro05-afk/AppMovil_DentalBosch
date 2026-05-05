@@ -8,44 +8,55 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Alert } from 'react-native';
+import { useForm } from '@tanstack/react-form';
 import { Input, Button, colors, spacing, Card } from '@/shared/ui';
+import { loginSchema } from '@/shared/lib/formSchemas';
 import { authService } from '@/entities/auth/api/auth.service';
 import { authStorage } from '@/shared/api/authStorage';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor ingresa tu correo y contraseña');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await authService.login({ email, password });
-      if (response.token) {
-        // 1. Guardamos el token
-        await authStorage.setToken(response.token);
-        // Redirigimos al dashboard central que internamente decidirá qué mostrar
-        router.replace('/(tabs)');
-      } else {
-        Alert.alert('Error', response.mensaje || 'Error al iniciar sesión');
+  const form = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    validators: {
+      onChange: ({ value }) => {
+        const result = loginSchema.safeParse(value);
+        if (result.success) return undefined;
+        const fields: Record<string, string> = {};
+        for (const error of result.error.errors) {
+          const field = error.path.join('.');
+          fields[field] = error.message;
+        }
+        return { fields };
+      },
+    },
+    onSubmit: async ({ value }) => {
+      setIsLoading(true);
+      try {
+        const response = await authService.login({ email: value.email, password: value.password });
+        if (response.token) {
+          await authStorage.setToken(response.token);
+          router.replace('/(tabs)');
+        } else {
+          Alert.alert('Error', response.mensaje || 'Credenciales inválidas');
+        }
+      } catch (error: any) {
+        console.error('Login error:', error);
+        Alert.alert('Error', error.response?.data?.mensaje || 'Credenciales inválidas o error de conexión');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      Alert.alert('Error', error.response?.data?.mensaje || 'Credenciales inválidas o error de conexión');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
@@ -76,23 +87,37 @@ export function LoginPage() {
               <Text style={styles.cardTitle}>Bienvenido de vuelta</Text>
               <Text style={styles.cardSubtitle}>Inicia sesión para continuar</Text>
 
-              <Input
-                label="Correo electrónico"
-                placeholder="@gmail.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                leftIcon="mail-outline"
+              <form.Field
+                name="email"
+                children={(field) => (
+                  <Input
+                    label="Correo electrónico"
+                    placeholder="@gmail.com"
+                    value={field.state.value}
+                    onChangeText={field.handleChange}
+                    onBlur={field.handleBlur}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    leftIcon="mail-outline"
+                    error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : undefined}
+                  />
+                )}
               />
 
-              <Input
-                label="Contraseña"
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                leftIcon="lock-closed-outline"
+              <form.Field
+                name="password"
+                children={(field) => (
+                  <Input
+                    label="Contraseña"
+                    placeholder="••••••••"
+                    value={field.state.value}
+                    onChangeText={field.handleChange}
+                    onBlur={field.handleBlur}
+                    secureTextEntry
+                    leftIcon="lock-closed-outline"
+                    error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : undefined}
+                  />
+                )}
               />
 
               <TouchableOpacity
@@ -102,14 +127,20 @@ export function LoginPage() {
                 <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
 
-              <Button
-                label="Iniciar sesión"
-                variant="primary"
-                size="lg"
-                loading={isLoading}
-                onPress={handleLogin}
-                icon={isLoading ? undefined : 'arrow-forward'}
-                iconPosition="right"
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+                children={([canSubmit]) => (
+                  <Button
+                    label="Iniciar sesión"
+                    variant="primary"
+                    size="lg"
+                    loading={isLoading}
+                    disabled={!canSubmit}
+                    onPress={() => form.handleSubmit()}
+                    icon={isLoading ? undefined : 'arrow-forward'}
+                    iconPosition="right"
+                  />
+                )}
               />
 
               <View style={styles.dividerRow}>
