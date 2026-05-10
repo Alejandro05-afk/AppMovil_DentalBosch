@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, Card, Button } from '@/shared/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, Card } from '@/shared/ui';
 import { authService } from '@/entities/auth/api/auth.service';
 import { UserProfile } from '@/entities/auth/model/auth.types';
 import { authStorage } from '@/shared/api/authStorage';
@@ -41,7 +42,12 @@ export function DashboardPage() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.welcomeText}>Bienvenido de vuelta</Text>
+        <View style={styles.topBar}>
+          <Text style={styles.welcomeText}>Bienvenido de vuelta</Text>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={24} color={colors.gray[500]} />
+          </TouchableOpacity>
+        </View>
         
         <Card variant="elevated" style={styles.card}>
           <Text style={styles.nameText}>
@@ -65,13 +71,6 @@ export function DashboardPage() {
             <Text style={styles.sectionSubtitle}>Aquí podrás agendar nuevas citas odontológicas y ver tu historial médico.</Text>
           </Card>
         )}
-
-        <Button 
-          label="Cerrar sesión" 
-          variant="outline" 
-          onPress={handleLogout} 
-          containerStyle={styles.logoutBtn} 
-        />
       </View>
     </SafeAreaView>
   );
@@ -92,11 +91,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.lightBg,
   },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
   welcomeText: {
     fontSize: 24,
     fontWeight: '700',
     color: colors.dark,
-    marginBottom: spacing.lg,
   },
   card: {
     alignItems: 'center',
@@ -135,6 +139,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   logoutBtn: {
-    marginTop: 'auto',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   }
 });

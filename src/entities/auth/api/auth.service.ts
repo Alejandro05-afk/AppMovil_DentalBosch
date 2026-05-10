@@ -32,4 +32,14 @@ export const authService = {
     const response = await apiClient.post<any>('/auth/restablecer-password', { codigo, password });
     return response.data;
   },
+
+  async actualizarPassword(passwordActual: string, passwordNuevo: string): Promise<any> {
+    const response = await apiClient.put<any>('/auth/actualizar-password', { passwordActual, passwordNuevo });
+    return response.data;
+  },
+
+  async actualizarPerfil(data: any): Promise<UserProfile> {
+    const response = await apiClient.put<any>('/pacientes/perfil/paciente', data);
+    return response.data.data;
+  },
 };
