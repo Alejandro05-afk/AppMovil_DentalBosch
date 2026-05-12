@@ -87,11 +87,7 @@ export function AgendarCitaPage() {
         motivo,
       });
       setFeedback({ type: 'success', message: 'Cita agendada correctamente' });
-      setDoctorSel('');
-      setFecha('');
-      setHoraInicio('');
-      setHoraFin('');
-      setMotivo('');
+      setTimeout(() => router.replace('/'), 1500);
     } catch (error: any) {
       const msg = error.response?.data?.mensaje || 'No se pudo agendar la cita';
       setFeedback({ type: 'error', message: msg });

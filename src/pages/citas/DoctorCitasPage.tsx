@@ -146,10 +146,10 @@ export function DoctorCitasPage() {
               <Text style={styles.dayEmptyText}>Sin citas este día</Text>
             </View>
           ) : (
-            citasDelDia.map((c) => {
+            citasDelDia.map((c, idx) => {
               const est = getEstadoInfo(c.estado);
               return (
-                <Card key={c._id} variant="elevated" style={styles.citaCard}>
+                <Card key={c._id || `cita-${idx}`} variant="elevated" style={styles.citaCard}>
                   <View style={styles.citaTop}>
                     <View style={styles.citaAvatar}>
                       <Ionicons name="person" size={20} color={colors.white} />
