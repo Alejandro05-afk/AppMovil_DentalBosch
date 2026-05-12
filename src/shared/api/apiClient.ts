@@ -10,6 +10,13 @@ export const apiClient = axios.create({
   },
 });
 
+export const publicApiClient = axios.create({
+  baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Interceptor para inyectar el token en cada petición
 apiClient.interceptors.request.use(
   async (config) => {

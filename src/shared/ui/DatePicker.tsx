@@ -41,9 +41,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   minimumDate,
 }) => {
   const [showModal, setShowModal] = useState(false);
-  const today = new Date();
-
-  const effectiveMaxDate = maximumDate !== undefined ? maximumDate : today;
 
   const handleDateChange = (_: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -60,7 +57,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         value: parseDbDate(value) || new Date(),
         onChange: handleDateChange,
         mode: 'date',
-        maximumDate: effectiveMaxDate,
+        maximumDate,
         minimumDate,
         display: 'spinner',
       });
@@ -117,7 +114,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   onChange={handleDateChange}
                   mode="date"
                   display="spinner"
-                  maximumDate={effectiveMaxDate}
+                  maximumDate={maximumDate}
                   minimumDate={minimumDate}
                   themeVariant="light"
                   textColor={colors.dark}

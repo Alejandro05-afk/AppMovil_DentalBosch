@@ -1,5 +1,1 @@
-import { ProfilePage } from '@/pages/profile/ProfilePage';
-
-export default function Profile() {
-  return <ProfilePage />;
-}
+export { ProfileRouterPage as default } from '@/pages/profile/ProfileRouterPage';

@@ -3,7 +3,8 @@ export interface UserProfile {
   apellido: string;
   cedula: string;           // solo lectura — no editable
   email: string;            // solo lectura — no editable
-  fechaNacimiento: string;  // ISO date: 'YYYY-MM-DD'
+  rol: string;
+  fechaNacimiento: string;  // 'YYYY-MM-DD'
   genero: string;
   telefono: string;
   direccion: {

@@ -17,18 +17,8 @@ export function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const data = await authService.getProfile();
-        setProfile({
-          nombre: data.nombre || '',
-          apellido: data.apellido || '',
-          cedula: data.cedula || '',
-          email: data.email || '',
-          fechaNacimiento: data.fechaNacimiento || '',
-          genero: data.genero || '',
-          telefono: data.telefono || '',
-          direccion: data.direccion || { calle: '', ciudad: '', provincia: '' },
-          contactoEmergencia: data.contactoEmergencia || { nombre: '', telefono: '', parentesco: '' },
-        });
+        const data = await authService.getFullProfile();
+        setProfile(data);
       } catch (error) {
         console.error('Error fetching profile:', error);
         Alert.alert('Error', 'No se pudo cargar el perfil');
@@ -39,23 +29,14 @@ export function ProfilePage() {
     fetchProfile();
   }, []);
 
-  const handleSaveProfile = async (data: EditProfileFormData) => {
+  const handleSaveProfile = async (formData: EditProfileFormData) => {
     setIsLoading(true);
     try {
-      const updated = await authService.actualizarPerfil(data);
-      setProfile({
-        nombre: updated.nombre || '',
-        apellido: updated.apellido || '',
-        cedula: updated.cedula || profile.cedula,
-        email: updated.email || profile.email,
-        fechaNacimiento: updated.fechaNacimiento || profile.fechaNacimiento,
-        genero: updated.genero || profile.genero,
-        telefono: updated.telefono || '',
-        direccion: updated.direccion || profile.direccion,
-        contactoEmergencia: updated.contactoEmergencia || profile.contactoEmergencia,
-      });
+      await authService.actualizarPerfil(formData);
+      const refreshed = await authService.getFullProfile();
+      setProfile(refreshed);
       setIsEditing(false);
-      Alert.alert('Éxito', 'Perfil actualizado correctamente ✅');
+      Alert.alert('Éxito', 'Perfil actualizado correctamente');
     } catch (error: any) {
       const mensaje = error.response?.data?.mensaje || 'No se pudo actualizar el perfil';
       Alert.alert('Error', mensaje);

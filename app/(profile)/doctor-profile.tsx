@@ -1,0 +1,1 @@
+export { DoctorProfilePage as default } from '@/pages/doctor/DoctorProfilePage';

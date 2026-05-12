@@ -6,6 +6,7 @@ import {
   Text,
   StyleSheet,
   Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/shared/ui/theme';
@@ -25,6 +26,11 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   error,
   disabled = false,
 }) => {
+  const { width: screenWidth } = useWindowDimensions();
+  const gap = 8;
+  const availableWidth = screenWidth - 64;
+  const boxSize = Math.min(44, Math.floor((availableWidth - gap * (length - 1)) / length));
+
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
@@ -73,7 +79,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputsRow}>
+      <View style={[styles.inputsRow, { gap }]}>
         {Array.from({ length }, (_, index) => {
           const isFocused = focusedIndex === index;
           const hasValue = !!value[index];
@@ -87,6 +93,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
               }}
               style={[
                 styles.input,
+                { width: boxSize, height: boxSize + 4 },
                 isFocused && styles.inputFocused,
                 hasError && styles.inputError,
                 hasValue && styles.inputFilled,
@@ -127,17 +134,14 @@ const styles = StyleSheet.create({
   inputsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
   },
   input: {
-    width: 48,
-    height: 56,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: colors.gray[300],
     backgroundColor: colors.white,
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.dark,
   },
