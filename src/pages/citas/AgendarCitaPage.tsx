@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,31 @@ import { citasService } from '@/entities/citas/api/citas.service';
 import { DoctorItem } from '@/entities/citas/model/citas.types';
 import { apiClient } from '@/shared/api/apiClient';
 import { Button, Card, Input, DatePicker, LoadingScreen, ErrorScreen, colors, spacing } from '@/shared/ui';
+
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const SLOT_DURACION = 60;
+
+function generarSlots(inicio: string, fin: string): string[] {
+  const [hI, mI] = inicio.split(':').map(Number);
+  const [hF, mF] = fin.split(':').map(Number);
+  const startMin = hI * 60 + mI;
+  const endMin = hF * 60 + mF;
+  const slots: string[] = [];
+  for (let m = startMin; m + SLOT_DURACION <= endMin; m += SLOT_DURACION) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    slots.push(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+  }
+  return slots;
+}
+
+function sumarMinutos(hora: string, minutos: number): string {
+  const [h, m] = hora.split(':').map(Number);
+  const total = h * 60 + m + minutos;
+  const hh = Math.floor(total / 60);
+  const mm = total % 60;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
 
 export function AgendarCitaPage() {
   const [pageState, setPageState] = useState<'loading' | 'no-acceso' | 'error' | 'ready'>('loading');
@@ -23,6 +48,11 @@ export function AgendarCitaPage() {
   const [motivo, setMotivo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState('');
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsMessage, setSlotsMessage] = useState('');
 
   const cargarDatos = async () => {
     setPageState('loading');
@@ -52,8 +82,57 @@ export function AgendarCitaPage() {
     cargarDatos();
   }, []);
 
-  const validarHora = (hora: string) => /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(hora);
-  const validarFecha = (f: string) => /^\d{4}-\d{2}-\d{2}$/.test(f);
+  const cargarSlots = useCallback(async () => {
+    if (!doctorSel || !fecha) return;
+    setLoadingSlots(true);
+    setSelectedSlot('');
+    setHoraInicio('');
+    setHoraFin('');
+    setSlotsMessage('');
+    setAvailableSlots([]);
+
+    try {
+      const docData = doctores.find((d) => d._id === doctorSel) as any;
+      const horarios: any[] = docData?.horarioAtencion || [];
+
+      if (!horarios || horarios.length === 0) {
+        setSlotsMessage('Horario del doctor no disponible');
+        return;
+      }
+
+      const dateObj = new Date(fecha + 'T12:00:00');
+      const diaSemana = DIAS[dateObj.getDay()];
+      const horarioHoy = horarios.find((h: any) => h.dia === diaSemana);
+
+      if (!horarioHoy || !horarioHoy.disponible) {
+        setSlotsMessage('El doctor no atiende este día');
+        return;
+      }
+
+      const slots = generarSlots(horarioHoy.horaInicio, horarioHoy.horaFin);
+
+      if (slots.length === 0) {
+        setSlotsMessage('No hay horarios disponibles para esta fecha');
+      }
+      setAvailableSlots(slots);
+    } catch (e: any) {
+      const msg = e.response?.data?.mensaje || e.response?.data?.error || e.message || 'Error al cargar horarios disponibles';
+      setSlotsMessage(msg);
+    } finally {
+      setLoadingSlots(false);
+    }
+  }, [doctorSel, fecha, doctores]);
+
+  useEffect(() => {
+    cargarSlots();
+  }, [cargarSlots]);
+
+  const handleSlotSelect = (slot: string) => {
+    setSelectedSlot(slot);
+    setHoraInicio(slot);
+    setHoraFin(sumarMinutos(slot, SLOT_DURACION));
+    setFeedback(null);
+  };
 
   const handleAgendar = async () => {
     setFeedback(null);
@@ -62,16 +141,8 @@ export function AgendarCitaPage() {
       setFeedback({ type: 'error', message: 'Todos los campos son obligatorios' });
       return;
     }
-    if (!validarFecha(fecha)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
       setFeedback({ type: 'error', message: 'Formato de fecha inválido' });
-      return;
-    }
-    if (!validarHora(horaInicio) || !validarHora(horaFin)) {
-      setFeedback({ type: 'error', message: 'Formato de hora inválido. Use HH:MM (ej: 09:00)' });
-      return;
-    }
-    if (horaInicio >= horaFin) {
-      setFeedback({ type: 'error', message: 'La hora de inicio debe ser menor a la hora fin' });
       return;
     }
 
@@ -206,26 +277,51 @@ export function AgendarCitaPage() {
               minimumDate={new Date()}
             />
 
-            <View style={styles.horasRow}>
-              <View style={styles.horaField}>
-                <Input
-                  label="Hora inicio"
-                  value={horaInicio}
-                  onChangeText={setHoraInicio}
-                  placeholder="HH:MM"
-                  leftIcon="time-outline"
-                />
-              </View>
-              <View style={styles.horaField}>
-                <Input
-                  label="Hora fin"
-                  value={horaFin}
-                  onChangeText={setHoraFin}
-                  placeholder="HH:MM"
-                  leftIcon="time-outline"
-                />
-              </View>
-            </View>
+            {doctorSel && fecha ? (
+              <>
+                <Text style={styles.label}>Horario disponible</Text>
+                {loadingSlots ? (
+                  <ActivityIndicator size="small" color={colors.primary} style={styles.slotsLoader} />
+                ) : slotsMessage ? (
+                  <View style={styles.slotsMessageBox}>
+                    <Ionicons name="information-circle-outline" size={20} color={colors.gray[400]} />
+                    <Text style={styles.slotsMessageText}>{slotsMessage}</Text>
+                  </View>
+                ) : availableSlots.length > 0 ? (
+                  <View style={styles.slotsGrid}>
+                    {availableSlots.map((slot) => {
+                      const isSelected = slot === selectedSlot;
+                      return (
+                        <TouchableOpacity
+                          key={slot}
+                          style={[styles.slotChip, isSelected && styles.slotChipSelected]}
+                          onPress={() => handleSlotSelect(slot)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={isSelected ? 'checkmark-circle' : 'time-outline'}
+                            size={16}
+                            color={isSelected ? colors.white : colors.primary}
+                          />
+                          <Text style={[styles.slotChipText, isSelected && styles.slotChipTextSelected]}>
+                            {slot}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : null}
+
+                {selectedSlot ? (
+                  <View style={styles.slotSummary}>
+                    <Ionicons name="time-outline" size={16} color={colors.secondary} />
+                    <Text style={styles.slotSummaryText}>
+                      {horaInicio} — {horaFin} ({SLOT_DURACION} min)
+                    </Text>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
 
             <Input
               label="Motivo"
@@ -382,12 +478,65 @@ const styles = StyleSheet.create({
     color: colors.gray[400],
     marginTop: 2,
   },
-  horasRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+  slotsLoader: {
+    marginVertical: spacing.lg,
   },
-  horaField: {
+  slotsMessageBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.gray[50],
+    padding: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+  },
+  slotsMessageText: {
+    fontSize: 14,
+    color: colors.gray[500],
     flex: 1,
+  },
+  slotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  slotChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
+    backgroundColor: colors.white,
+  },
+  slotChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  slotChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  slotChipTextSelected: {
+    color: colors.white,
+  },
+  slotSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.secondary + '15',
+    padding: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+  },
+  slotSummaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.secondary,
   },
   fullScreenCenter: {
     flex: 1,

@@ -43,4 +43,15 @@ export const citasService = {
     const response = await apiClient.get<any>(`/citas?doctor=${doctorId}&fecha=${fecha}`);
     return response.data.datos || response.data.data || [];
   },
+
+  async obtenerPerfilDoctor(id: string): Promise<any> {
+    const response = await apiClient.get<any>(`/doctores/${id}`);
+    return response.data.data || response.data.datos || response.data;
+  },
+
+  async cancelarCita(citaId: string, motivoCancelacion: string): Promise<void> {
+    await apiClient.delete(`/citas/${citaId}`, {
+      data: { motivoCancelacion },
+    });
+  },
 };
