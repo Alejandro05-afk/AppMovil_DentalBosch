@@ -24,6 +24,13 @@ function getParamFromUrl(url: string, param: string): string | null {
   return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
 }
 
+function getSupabaseErrorMessage(error: any): string {
+  const status = error?.status ? ` (${error.status})` : '';
+  const code = error?.code ? ` [${error.code}]` : '';
+  const message = error?.message || 'Error desconocido de Supabase';
+  return `${message}${status}${code}`;
+}
+
 export const supabaseAuthService = {
   // Registro de usuario en Supabase Auth
   async register(data: RegisterRequest): Promise<AuthResponse> {
@@ -86,13 +93,37 @@ export const supabaseAuthService = {
   // Recuperación de contraseña (envía correo para restablecer)
   async recuperarPassword(email: string): Promise<any> {
     const client = checkSupabase();
-    const resetUrl = (process.env.EXPO_PUBLIC_RESET_PASSWORD_URL || Linking.createURL('/(auth)/reset-password'));
+    const resetUrl = process.env.EXPO_PUBLIC_RESET_PASSWORD_URL || Linking.createURL('/(auth)/reset-password');
     const { error } = await client.auth.resetPasswordForEmail(email, {
       redirectTo: resetUrl,
     });
 
     if (error) {
-      throw error;
+      console.error('Supabase recovery email error:', {
+        message: error.message,
+        status: (error as any).status,
+        code: (error as any).code,
+        redirectTo: resetUrl,
+      });
+
+      if ((error as any).status >= 500) {
+        const { error: fallbackError } = await client.auth.resetPasswordForEmail(email);
+        if (!fallbackError) {
+          return {
+            mensaje: 'Se ha enviado un correo electrónico para restablecer tu contraseña',
+          };
+        }
+
+        console.error('Supabase recovery email fallback error:', {
+          message: fallbackError.message,
+          status: (fallbackError as any).status,
+          code: (fallbackError as any).code,
+        });
+      }
+
+      throw new Error(
+        `No se pudo enviar el correo de recuperacion desde Supabase: ${getSupabaseErrorMessage(error)}. Verifica SMTP, URL Configuration y el template Reset Password en Supabase.`
+      );
     }
 
     return {

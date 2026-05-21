@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Restablecer contraseña — DentalBosch</title>
+  <title>Restablecer contrasena - DentalBosch</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f8fafc;
       min-height: 100vh;
       display: flex;
@@ -70,30 +70,26 @@
     }
     .card button:hover { opacity: 0.9; }
     .card button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .card .error {
+    .error {
       color: #dc2626;
       font-size: 14px;
       text-align: center;
       margin-top: 12px;
     }
-    .card .success {
-      color: #16a34a;
-      font-size: 14px;
+    .success-icon {
       text-align: center;
-      margin-top: 12px;
-    }
-    .card .success-icon {
-      text-align: center;
-      font-size: 48px;
+      font-size: 32px;
+      font-weight: 700;
       margin-bottom: 16px;
+      color: #ff4fa3;
     }
-    .card .btn-secondary {
+    .btn-secondary {
       background: transparent;
       color: #ff4fa3;
       border: 1.5px solid #ff4fa3;
       margin-top: 12px;
     }
-    .card .btn-secondary:hover { background: #fff0f7; }
+    .btn-secondary:hover { background: #fff0f7; }
     .strength-bar {
       height: 6px;
       background: #e2e8f0;
@@ -122,83 +118,138 @@
 </head>
 <body>
   <div class="card" id="app">
-    <!-- Estado 1: validando enlace -->
     <div id="state-loading">
       <h1>Verificando enlace...</h1>
-      <p style="margin-bottom:0">Por favor esperá un momento.</p>
+      <p style="margin-bottom:0">Por favor espera un momento.</p>
     </div>
 
-    <!-- Estado 2: error enlace inválido -->
     <div id="state-error" class="hidden">
-      <div class="success-icon">⚠️</div>
-      <h1>Enlace inválido o expirado</h1>
-      <p>Este enlace de recuperación no es válido o ya expiró. Solicitá uno nuevo desde la aplicación.</p>
-      <p id="error-detail" style="font-size:12px;color:#dc2626;margin-top:12px"></p>
+      <div class="success-icon">!</div>
+      <h1>Enlace invalido o expirado</h1>
+      <p>Este enlace de recuperacion no es valido o ya expiro. Solicita uno nuevo desde la aplicacion.</p>
+      <p id="error-detail" class="error"></p>
     </div>
 
-    <!-- Estado 3: formulario -->
     <div id="state-form" class="hidden">
-      <h1>Nueva contraseña</h1>
-      <p>Ingresá tu nueva contraseña para restablecer el acceso a tu cuenta.</p>
+      <h1>Nueva contrasena</h1>
+      <p>Ingresa tu nueva contrasena para restablecer el acceso a tu cuenta.</p>
 
-      <label for="password">Nueva contraseña</label>
-      <input type="password" id="password" placeholder="Ingresá tu nueva contraseña" autocomplete="new-password" />
+      <label for="password">Nueva contrasena</label>
+      <input type="password" id="password" placeholder="Ingresa tu nueva contrasena" autocomplete="new-password" />
       <div class="strength-bar"><div id="strength-fill" style="width:0%;background:#e2e8f0"></div></div>
 
-      <label for="confirm">Confirmar contraseña</label>
-      <input type="password" id="confirm" placeholder="Repetí tu nueva contraseña" autocomplete="new-password" />
+      <label for="confirm">Confirmar contrasena</label>
+      <input type="password" id="confirm" placeholder="Repite tu nueva contrasena" autocomplete="new-password" />
 
-      <button id="btn-submit" onclick="handleSubmit()">Restablecer contraseña</button>
+      <button id="btn-submit" type="button">Restablecer contrasena</button>
       <div id="form-error" class="error hidden"></div>
     </div>
 
-    <!-- Estado 4: éxito -->
     <div id="state-success" class="hidden">
-      <div class="success-icon">✅</div>
-      <h1>Contraseña actualizada</h1>
-      <p>Tu contraseña se restableció correctamente. Ya podés iniciar sesión en la aplicación con tu nueva contraseña.</p>
-      <button class="btn-secondary" onclick="window.close()">Cerrar esta página</button>
+      <div class="success-icon">OK</div>
+      <h1>Contrasena actualizada</h1>
+      <p>Tu contrasena se restablecio correctamente. Ya puedes iniciar sesion en la aplicacion con tu nueva contrasena.</p>
+      <button class="btn-secondary" type="button" onclick="window.close()">Cerrar esta pagina</button>
     </div>
   </div>
 
   <script>
-    const SUPABASE_URL = '{{SUPABASE_URL}}';
-    const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
+    const SUPABASE_URL = "{{SUPABASE_URL}}";
+    const SUPABASE_ANON_KEY = "{{SUPABASE_ANON_KEY}}";
+    let sb = null;
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-
-    function $(id) { return document.getElementById(id); }
-    function show(id) {
-      ['state-loading','state-error','state-form','state-success'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+    function $(id) {
+      return document.getElementById(id);
     }
 
-    function getParam(param) {
-      const search = window.location.search;
-      let m = new RegExp('[?&]' + param + '=([^&]*)').exec(search);
-      if (m) return decodeURIComponent(m[1].replace(/\\+/g, ' '));
-      const hash = window.location.hash.replace('#', '?');
-      m = new RegExp('[?&]' + param + '=([^&]*)').exec(hash);
-      return m ? decodeURIComponent(m[1].replace(/\\+/g, ' ')) : null;
+    function show(id) {
+      ["state-loading", "state-error", "state-form", "state-success"].forEach((stateId) => {
+        $(stateId).classList.toggle("hidden", stateId !== id);
+      });
+    }
+
+    function setError(message) {
+      $("error-detail").textContent = message || "No se pudo verificar el enlace.";
+      show("state-error");
+    }
+
+    function getParams() {
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+      hashParams.forEach((value, key) => {
+        if (!params.has(key)) params.set(key, value);
+      });
+
+      return params;
+    }
+
+    function createSupabaseClient() {
+      if (!window.supabase || !window.supabase.createClient) {
+        throw new Error("No se pudo cargar la libreria de Supabase. Revisa tu conexion e intenta nuevamente.");
+      }
+
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes("{{") || SUPABASE_ANON_KEY.includes("{{")) {
+        throw new Error("Faltan SUPABASE_URL y SUPABASE_ANON_KEY en las variables de entorno de Vercel.");
+      }
+
+      return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: true,
+          detectSessionInUrl: false,
+          flowType: "pkce",
+        },
+      });
     }
 
     async function init() {
-      const access_token = getParam('access_token');
-      const refresh_token = getParam('refresh_token');
-      const type = getParam('type');
+      try {
+        sb = createSupabaseClient();
 
-      if (type === 'recovery' && access_token && refresh_token) {
-        const { error } = await sb.auth.setSession({ access_token, refresh_token });
-        if (error) {
-          $('error-detail').textContent = error.message;
-          show('state-error');
+        const params = getParams();
+        const code = params.get("code");
+        const tokenHash = params.get("token_hash");
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        const type = params.get("type") || "recovery";
+
+        if (code) {
+          const { error } = await sb.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          show("state-form");
           return;
         }
-        show('state-form');
-      } else {
-        $('error-detail').textContent = 'Tipo: ' + (type || 'ninguno');
-        show('state-error');
+
+        if (tokenHash) {
+          const { error } = await sb.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "recovery",
+          });
+          if (error) throw error;
+          show("state-form");
+          return;
+        }
+
+        if (type === "recovery" && accessToken && refreshToken) {
+          const { error } = await sb.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+          show("state-form");
+          return;
+        }
+
+        const { data } = await sb.auth.getSession();
+        if (data && data.session) {
+          show("state-form");
+          return;
+        }
+
+        setError("El enlace no contiene codigo ni tokens de recuperacion. Solicita un nuevo enlace desde la app.");
+      } catch (error) {
+        setError(error && error.message ? error.message : "No se pudo verificar el enlace.");
       }
     }
 
@@ -210,53 +261,65 @@
         { test: /[0-9]/, weight: 20 },
         { test: /[^a-zA-Z0-9]/, weight: 20 },
       ];
-      return rules.reduce((acc, r) => r.test(password) ? acc + r.weight : acc, 0);
+
+      return rules.reduce((acc, rule) => rule.test(password) ? acc + rule.weight : acc, 0);
     }
 
-    $('password').addEventListener('input', function() {
-      const pct = getStrength(this.value);
-      const bar = $('strength-fill');
-      bar.style.width = pct + '%';
-      if (pct <= 20) bar.style.background = '#dc2626';
-      else if (pct <= 40) bar.style.background = '#f59e0b';
-      else if (pct <= 60) bar.style.background = '#38d6c4';
-      else bar.style.background = '#16a34a';
-    });
+    function updateStrengthBar(password) {
+      const pct = getStrength(password);
+      const bar = $("strength-fill");
+      bar.style.width = pct + "%";
+      if (pct <= 20) bar.style.background = "#dc2626";
+      else if (pct <= 40) bar.style.background = "#f59e0b";
+      else if (pct <= 60) bar.style.background = "#38d6c4";
+      else bar.style.background = "#16a34a";
+    }
 
     async function handleSubmit() {
-      const password = $('password').value;
-      const confirm = $('confirm').value;
-      const err = $('form-error');
+      const password = $("password").value;
+      const confirm = $("confirm").value;
+      const err = $("form-error");
 
       if (!password || password.length < 6) {
-        err.textContent = 'La contraseña debe tener al menos 6 caracteres.';
-        err.classList.remove('hidden');
-        return;
-      }
-      if (password !== confirm) {
-        err.textContent = 'Las contraseñas no coinciden.';
-        err.classList.remove('hidden');
+        err.textContent = "La contrasena debe tener al menos 6 caracteres.";
+        err.classList.remove("hidden");
         return;
       }
 
-      err.classList.add('hidden');
-      const btn = $('btn-submit');
+      if (password !== confirm) {
+        err.textContent = "Las contrasenas no coinciden.";
+        err.classList.remove("hidden");
+        return;
+      }
+
+      err.classList.add("hidden");
+      const btn = $("btn-submit");
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Actualizando...';
 
-      const { error } = await sb.auth.updateUser({ password });
+      try {
+        if (!sb) {
+          throw new Error("La sesion de recuperacion no esta lista. Abre nuevamente el enlace del correo.");
+        }
 
-      if (error) {
-        err.textContent = error.message;
-        err.classList.remove('hidden');
+        const { error } = await sb.auth.updateUser({ password });
+        if (error) throw error;
+
+        await sb.auth.signOut();
+        show("state-success");
+      } catch (error) {
+        err.textContent = error && error.message ? error.message : "No se pudo actualizar la contrasena.";
+        err.classList.remove("hidden");
         btn.disabled = false;
-        btn.textContent = 'Restablecer contraseña';
-      } else {
-        show('state-success');
+        btn.textContent = "Restablecer contrasena";
       }
     }
 
-    init();
+    window.addEventListener("DOMContentLoaded", () => {
+      $("password").addEventListener("input", (event) => updateStrengthBar(event.target.value));
+      $("btn-submit").addEventListener("click", handleSubmit);
+      init();
+    });
   </script>
 </body>
 </html>

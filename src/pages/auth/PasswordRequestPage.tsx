@@ -62,8 +62,16 @@ export function PasswordRequestPage() {
           );
         }
       } catch (error: any) {
-        console.error('Password request error:', error);
-        Alert.alert('Error', error.response?.data?.mensaje || error.message || 'No se pudo enviar el código. Intenta de nuevo.');
+        console.error('Password request error:', {
+          message: error?.message,
+          status: error?.status,
+          code: error?.code,
+          response: error?.response?.data,
+        });
+        Alert.alert(
+          'No se pudo enviar el correo',
+          error.response?.data?.mensaje || error.message || 'Revisa la configuracion de Supabase Auth e intenta de nuevo.',
+        );
       } finally {
         setIsLoading(false);
       }

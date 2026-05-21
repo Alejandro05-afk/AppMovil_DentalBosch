@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { TamaguiAppProvider } from '@/shared/ui/TamaguiAppProvider';
 
 export const unstable_settings = {
   initialRouteName: '(auth)/login',
@@ -10,15 +11,17 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider value={DefaultTheme}>
-      <Stack
-        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F8FAFC' } }}
-      >
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(profile)" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <TamaguiAppProvider>
+      <ThemeProvider value={DefaultTheme}>
+        <Stack
+          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F8FAFC' } }}
+        >
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(profile)" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </TamaguiAppProvider>
   );
 }
