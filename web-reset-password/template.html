@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restablecer contraseña — DentalBosch</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .card h1 {
+      font-size: 24px;
+      color: #0f172a;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .card p {
+      font-size: 14px;
+      color: #64748b;
+      text-align: center;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+    .card label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+    .card input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 16px;
+    }
+    .card input:focus { border-color: #ff4fa3; }
+    .card button {
+      width: 100%;
+      padding: 14px;
+      background: #ff4fa3;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-top: 8px;
+    }
+    .card button:hover { opacity: 0.9; }
+    .card button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .card .error {
+      color: #dc2626;
+      font-size: 14px;
+      text-align: center;
+      margin-top: 12px;
+    }
+    .card .success {
+      color: #16a34a;
+      font-size: 14px;
+      text-align: center;
+      margin-top: 12px;
+    }
+    .card .success-icon {
+      text-align: center;
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .card .btn-secondary {
+      background: transparent;
+      color: #ff4fa3;
+      border: 1.5px solid #ff4fa3;
+      margin-top: 12px;
+    }
+    .card .btn-secondary:hover { background: #fff0f7; }
+    .strength-bar {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      margin: -8px 0 16px;
+      overflow: hidden;
+    }
+    .strength-bar div {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s, background 0.3s;
+    }
+    .hidden { display: none; }
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card" id="app">
+    <!-- Estado 1: validando enlace -->
+    <div id="state-loading">
+      <h1>Verificando enlace...</h1>
+      <p style="margin-bottom:0">Por favor esperá un momento.</p>
+    </div>
+
+    <!-- Estado 2: error enlace inválido -->
+    <div id="state-error" class="hidden">
+      <div class="success-icon">⚠️</div>
+      <h1>Enlace inválido o expirado</h1>
+      <p>Este enlace de recuperación no es válido o ya expiró. Solicitá uno nuevo desde la aplicación.</p>
+      <p id="error-detail" style="font-size:12px;color:#dc2626;margin-top:12px"></p>
+    </div>
+
+    <!-- Estado 3: formulario -->
+    <div id="state-form" class="hidden">
+      <h1>Nueva contraseña</h1>
+      <p>Ingresá tu nueva contraseña para restablecer el acceso a tu cuenta.</p>
+
+      <label for="password">Nueva contraseña</label>
+      <input type="password" id="password" placeholder="Ingresá tu nueva contraseña" autocomplete="new-password" />
+      <div class="strength-bar"><div id="strength-fill" style="width:0%;background:#e2e8f0"></div></div>
+
+      <label for="confirm">Confirmar contraseña</label>
+      <input type="password" id="confirm" placeholder="Repetí tu nueva contraseña" autocomplete="new-password" />
+
+      <button id="btn-submit" onclick="handleSubmit()">Restablecer contraseña</button>
+      <div id="form-error" class="error hidden"></div>
+    </div>
+
+    <!-- Estado 4: éxito -->
+    <div id="state-success" class="hidden">
+      <div class="success-icon">✅</div>
+      <h1>Contraseña actualizada</h1>
+      <p>Tu contraseña se restableció correctamente. Ya podés iniciar sesión en la aplicación con tu nueva contraseña.</p>
+      <button class="btn-secondary" onclick="window.close()">Cerrar esta página</button>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = '{{SUPABASE_URL}}';
+    const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    function $(id) { return document.getElementById(id); }
+    function show(id) {
+      ['state-loading','state-error','state-form','state-success'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+    }
+
+    function getParam(param) {
+      const search = window.location.search;
+      let m = new RegExp('[?&]' + param + '=([^&]*)').exec(search);
+      if (m) return decodeURIComponent(m[1].replace(/\\+/g, ' '));
+      const hash = window.location.hash.replace('#', '?');
+      m = new RegExp('[?&]' + param + '=([^&]*)').exec(hash);
+      return m ? decodeURIComponent(m[1].replace(/\\+/g, ' ')) : null;
+    }
+
+    async function init() {
+      const access_token = getParam('access_token');
+      const refresh_token = getParam('refresh_token');
+      const type = getParam('type');
+
+      if (type === 'recovery' && access_token && refresh_token) {
+        const { error } = await sb.auth.setSession({ access_token, refresh_token });
+        if (error) {
+          $('error-detail').textContent = error.message;
+          show('state-error');
+          return;
+        }
+        show('state-form');
+      } else {
+        $('error-detail').textContent = 'Tipo: ' + (type || 'ninguno');
+        show('state-error');
+      }
+    }
+
+    function getStrength(password) {
+      const rules = [
+        { test: /.{8,}/, weight: 20 },
+        { test: /[a-z]/, weight: 20 },
+        { test: /[A-Z]/, weight: 20 },
+        { test: /[0-9]/, weight: 20 },
+        { test: /[^a-zA-Z0-9]/, weight: 20 },
+      ];
+      return rules.reduce((acc, r) => r.test(password) ? acc + r.weight : acc, 0);
+    }
+
+    $('password').addEventListener('input', function() {
+      const pct = getStrength(this.value);
+      const bar = $('strength-fill');
+      bar.style.width = pct + '%';
+      if (pct <= 20) bar.style.background = '#dc2626';
+      else if (pct <= 40) bar.style.background = '#f59e0b';
+      else if (pct <= 60) bar.style.background = '#38d6c4';
+      else bar.style.background = '#16a34a';
+    });
+
+    async function handleSubmit() {
+      const password = $('password').value;
+      const confirm = $('confirm').value;
+      const err = $('form-error');
+
+      if (!password || password.length < 6) {
+        err.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+        err.classList.remove('hidden');
+        return;
+      }
+      if (password !== confirm) {
+        err.textContent = 'Las contraseñas no coinciden.';
+        err.classList.remove('hidden');
+        return;
+      }
+
+      err.classList.add('hidden');
+      const btn = $('btn-submit');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Actualizando...';
+
+      const { error } = await sb.auth.updateUser({ password });
+
+      if (error) {
+        err.textContent = error.message;
+        err.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Restablecer contraseña';
+      } else {
+        show('state-success');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
