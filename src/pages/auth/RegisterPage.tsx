@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { Input, Button, colors, spacing, Card, DatePicker } from '@/shared/ui';
 import { authService } from '@/entities/auth/api/auth.service';
 import { authStorage } from '@/shared/api/authStorage';
+import { registerPushToken } from '@/shared/hooks/usePushNotifications';
 import {
   emailSchema,
   passwordSchema,
@@ -120,6 +121,7 @@ export function RegisterPage() {
         const response = await authService.register(payload);
         if (response.token) {
           await authStorage.setToken(response.token);
+          registerPushToken();
           router.replace('/(tabs)');
         } else {
           Alert.alert('Éxito', response.mensaje || 'Registro exitoso');

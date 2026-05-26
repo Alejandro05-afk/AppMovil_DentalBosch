@@ -6,6 +6,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: "DentalBosch",
     slug: "dentalbosch",
     userInterfaceStyle: "automatic",
+    extra: {
+      eas: {
+        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID,
+      },
+    },
     plugins: [],
   };
 };

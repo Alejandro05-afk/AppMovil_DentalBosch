@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Image,
   Alert,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,9 +19,15 @@ import { Input, Button, colors, spacing, Card } from '@/shared/ui';
 import { loginSchema } from '@/shared/lib/formSchemas';
 import { authService } from '@/entities/auth/api/auth.service';
 import { authStorage } from '@/shared/api/authStorage';
+import { publicApiClient } from '@/shared/api/apiClient';
+import { registerPushToken } from '@/shared/hooks/usePushNotifications';
 
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showBackendPass, setShowBackendPass] = useState(false);
+  const [backendEmail, setBackendEmail] = useState('');
+  const [backendPassword, setBackendPassword] = useState('');
+  const [backendLoading, setBackendLoading] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -45,6 +52,7 @@ export function LoginPage() {
         const response = await authService.login({ email: value.email, password: value.password });
         if (response.token) {
           await authStorage.setToken(response.token);
+          registerPushToken();
           router.replace('/(tabs)');
         } else {
           Alert.alert('Error', response.mensaje || 'Credenciales inválidas');
@@ -58,12 +66,63 @@ export function LoginPage() {
     },
   });
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const response: any = await authService.loginWithGoogle();
+      if (response.needsBackendAuth && response.email) {
+        setBackendEmail(response.email);
+        setShowBackendPass(true);
+        return;
+      }
+      if (response.token) {
+        await authStorage.setToken(response.token);
+        registerPushToken();
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', 'No se pudo obtener la sesión de Google.');
+      }
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      const msg = error?.message || '';
+      if (msg.includes('canceló')) {
+        // El usuario cerró el navegador, no mostrar alerta
+      } else if (msg.includes('no está habilitado')) {
+        Alert.alert(
+          'Google no configurado',
+          'El proveedor de Google no está activado en Supabase. Andá a Authentication > Providers > Google y activalo.'
+        );
+      } else {
+        Alert.alert('Error', msg || 'Ocurrió un error al iniciar sesión con Google.');
+      }
+    } finally {
       setIsLoading(false);
-      router.replace('/(tabs)');
-    }, 1500);
+    }
+  };
+
+  const handleBackendLink = async () => {
+    if (!backendPassword.trim()) return;
+    setBackendLoading(true);
+    try {
+      const r = await publicApiClient.post('/auth/login', {
+        email: backendEmail,
+        password: backendPassword,
+      });
+      const token = r.data?.token || r.data?.datos?.token || r.data?.data?.token;
+      if (token) {
+        await authStorage.setToken(token);
+        registerPushToken();
+        setShowBackendPass(false);
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', 'No se pudo obtener el token del backend.');
+      }
+    } catch (e: any) {
+      const msg = e.response?.data?.mensaje || 'Credenciales inválidas';
+      Alert.alert('Error', msg);
+    } finally {
+      setBackendLoading(false);
+    }
   };
 
   return (
@@ -179,10 +238,47 @@ export function LoginPage() {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
+        </KeyboardAvoidingView>
+
+        <Modal visible={showBackendPass} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Vincular cuenta</Text>
+              <Text style={styles.modalDesc}>
+                El correo {backendEmail} ya está registrado. Ingresá tu contraseña para vincular tu cuenta de Google.
+              </Text>
+              <Input
+                label="Contraseña"
+                value={backendPassword}
+                onChangeText={setBackendPassword}
+                placeholder="Tu contraseña"
+                secureTextEntry
+                leftIcon="lock-closed-outline"
+              />
+              <View style={styles.modalActions}>
+                <Button
+                  variant="ghost"
+                  title="Cancelar"
+                  onPress={() => {
+                    setShowBackendPass(false);
+                    setBackendPassword('');
+                  }}
+                  disabled={backendLoading}
+                />
+                <Button
+                  variant="primary"
+                  title={backendLoading ? 'Vinculando...' : 'Vincular'}
+                  onPress={handleBackendLink}
+                  disabled={backendLoading || !backendPassword.trim()}
+                  loading={backendLoading}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    );
+  }
 
 const styles = StyleSheet.create({
   safe: {
@@ -299,5 +395,31 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: colors.gray[400],
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.dark,
+  },
+  modalDesc: {
+    fontSize: 14,
+    color: colors.gray[500],
+    lineHeight: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
 });

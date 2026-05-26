@@ -43,6 +43,19 @@ function renderTexto(v: any): React.ReactNode {
   return null;
 }
 
+function valorToString(val: any): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    const u = val.usuario || {};
+    const nom = val.nombreCompleto || u.nombre || val.nombre || val.nombreDoctor || val.label || val.descripcion || '';
+    const ape = u.apellido || val.apellido || '';
+    return [nom, ape].filter(Boolean).join(' ') || JSON.stringify(val);
+  }
+  return String(val);
+}
+
 function renderDetalleObjeto(obj: Record<string, any>): React.ReactNode {
   const ignore = new Set(['_id', 'codigo']);
   return Object.entries(obj)
@@ -54,7 +67,7 @@ function renderDetalleObjeto(obj: Record<string, any>): React.ReactNode {
         <View key={key} style={styles.detalleRow}>
           <Text style={styles.detalleLabel}>{label}</Text>
           <Text style={styles.detalleValue}>
-            {key === 'fecha' ? String(val).split('T')[0] : String(val)}
+            {key === 'fecha' ? String(val).split('T')[0] : valorToString(val)}
           </Text>
         </View>
       );
