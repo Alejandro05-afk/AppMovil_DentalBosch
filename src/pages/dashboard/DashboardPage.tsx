@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -43,8 +43,9 @@ function puedeCancelar(estado: string | any): boolean {
 }
 
 function CitaCard({ cita, onCancel }: { cita: CitaPaciente; onCancel: () => void }) {
-  const doctorNombre = cita.doctor?.usuario?.nombre || cita.doctor?.nombre || '';
-  const doctorApellido = cita.doctor?.usuario?.apellido || cita.doctor?.apellido || '';
+  const d = cita.doctor || {};
+  const nombreMostrar = d.nombreCompleto || d.nombre || d.apellido || '';
+  const especialidad = d.especialidad || '';
   const fechaSolo = cita.fecha?.split('T')[0] || cita.fecha;
   const est = getEstadoInfo(cita.estado);
 
@@ -72,11 +73,11 @@ function CitaCard({ cita, onCancel }: { cita: CitaPaciente; onCancel: () => void
           </YStack>
           <YStack flex={1} gap="$1">
             <Text color="#0F172A" fontSize={16} fontWeight="800">
-              {doctorNombre} {doctorApellido}
+              {nombreMostrar || 'Doctor'}
             </Text>
-            {cita.doctor?.especialidad ? (
+            {especialidad ? (
               <Text color="#64748B" fontSize={13}>
-                {cita.doctor.especialidad}
+                {especialidad}
               </Text>
             ) : null}
           </YStack>
@@ -215,11 +216,11 @@ export function DashboardPage() {
 
   const stats = useMemo(() => {
     const pendientes = citas.filter((cita) => getEstadoInfo(cita.estado).texto?.toLowerCase().includes('pend')).length;
-    const confirmadas = citas.filter((cita) => getEstadoInfo(cita.estado).texto?.toLowerCase().includes('confirm')).length;
+    const finalizadas = citas.filter((cita) => getEstadoInfo(cita.estado).texto?.toLowerCase().includes('finaliz')).length;
     return [
       { label: 'Citas', value: String(citas.length), color: '#FF4FA3' },
       { label: 'Pendientes', value: String(pendientes), color: '#F59E0B' },
-      { label: 'Confirmadas', value: String(confirmadas), color: '#38D6C4' },
+      { label: 'Finalizadas', value: String(finalizadas), color: '#6B7280' },
     ];
   }, [citas]);
 
@@ -310,28 +311,67 @@ export function DashboardPage() {
             ) : null}
           </Card>
 
-          <XStack gap="$3" flexWrap="wrap">
-            {stats.map((item) => (
+          {profile?.rol === 'paciente' && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => router.push('/historial')}
+            >
               <Card
-                key={item.label}
-                flex={1}
-                minWidth={98}
                 backgroundColor="#FFFFFF"
                 borderColor="#E2E8F0"
-                borderRadius={18}
+                borderRadius={20}
                 borderWidth={1}
                 padding="$4"
-                gap="$1"
               >
-                <Text color={item.color} fontSize={25} fontWeight="900">
-                  {item.value}
-                </Text>
-                <Text color="#64748B" fontSize={12} fontWeight="800">
-                  {item.label}
-                </Text>
+                <XStack alignItems="center" gap="$3">
+                  <YStack
+                    width={48}
+                    height={48}
+                    borderRadius={14}
+                    backgroundColor="#FFF0F7"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Ionicons name="document-text-outline" size={24} color="#FF4FA3" />
+                  </YStack>
+                  <YStack flex={1} gap="$1">
+                    <Text color="#0F172A" fontSize={16} fontWeight="800">
+                      Mi Historial Clínico
+                    </Text>
+                    <Text color="#64748B" fontSize={13}>
+                      Revisa tus consultas anteriores
+                    </Text>
+                  </YStack>
+                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </XStack>
               </Card>
-            ))}
-          </XStack>
+            </TouchableOpacity>
+          )}
+
+          {profile?.rol === 'paciente' ? (
+            <XStack gap="$3" flexWrap="wrap">
+              {stats.map((item) => (
+                <Card
+                  key={item.label}
+                  flex={1}
+                  minWidth={98}
+                  backgroundColor="#FFFFFF"
+                  borderColor="#E2E8F0"
+                  borderRadius={18}
+                  borderWidth={1}
+                  padding="$4"
+                  gap="$1"
+                >
+                  <Text color={item.color} fontSize={25} fontWeight="900">
+                    {item.value}
+                  </Text>
+                  <Text color="#64748B" fontSize={12} fontWeight="800">
+                    {item.label}
+                  </Text>
+                </Card>
+              ))}
+            </XStack>
+          ) : null}
 
           {profile?.rol === 'paciente' ? (
             <YStack gap="$3">
@@ -420,7 +460,7 @@ export function DashboardPage() {
       </ScrollView>
 
       <Modal visible={cancelModalVisible} transparent animationType="fade" onRequestClose={() => setCancelModalVisible(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text color="#0F172A" fontSize={18} fontWeight="900">Cancelar cita</Text>
@@ -430,7 +470,7 @@ export function DashboardPage() {
             </View>
 
             {cancelCita ? (
-              <View>
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <YStack backgroundColor="#F8FAFC" borderRadius={14} padding="$4" gap="$2" marginBottom="$4">
                   <Text color="#0F172A" fontSize={16} fontWeight="800">
                     {cancelCita.doctor?.usuario?.nombre || cancelCita.doctor?.nombre}{' '}
@@ -484,10 +524,10 @@ export function DashboardPage() {
                     )}
                   </TouchableOpacity>
                 </View>
-              </View>
+              </ScrollView>
             ) : null}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

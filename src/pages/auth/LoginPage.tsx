@@ -20,6 +20,7 @@ import { loginSchema } from '@/shared/lib/formSchemas';
 import { authService } from '@/entities/auth/api/auth.service';
 import { authStorage } from '@/shared/api/authStorage';
 import { publicApiClient } from '@/shared/api/apiClient';
+import { registerPushToken } from '@/shared/hooks/usePushNotifications';
 
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +52,7 @@ export function LoginPage() {
         const response = await authService.login({ email: value.email, password: value.password });
         if (response.token) {
           await authStorage.setToken(response.token);
+          registerPushToken();
           router.replace('/(tabs)');
         } else {
           Alert.alert('Error', response.mensaje || 'Credenciales inválidas');
@@ -75,6 +77,7 @@ export function LoginPage() {
       }
       if (response.token) {
         await authStorage.setToken(response.token);
+        registerPushToken();
         router.replace('/(tabs)');
       } else {
         Alert.alert('Error', 'No se pudo obtener la sesión de Google.');
@@ -108,6 +111,7 @@ export function LoginPage() {
       const token = r.data?.token || r.data?.datos?.token || r.data?.data?.token;
       if (token) {
         await authStorage.setToken(token);
+        registerPushToken();
         setShowBackendPass(false);
         router.replace('/(tabs)');
       } else {

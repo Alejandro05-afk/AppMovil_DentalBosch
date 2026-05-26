@@ -13,6 +13,7 @@ function formatDate(value: string): string {
 function mapFullProfile(data: any): UserProfile {
   const usuario = data?.usuario || {};
   return {
+    id: data._id,
     nombre: usuario.nombre || '',
     apellido: usuario.apellido || '',
     cedula: usuario.cedula || '',

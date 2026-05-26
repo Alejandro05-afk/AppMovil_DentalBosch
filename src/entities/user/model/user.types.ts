@@ -1,4 +1,5 @@
 export interface UserProfile {
+  id?: string;
   nombre: string;
   apellido: string;
   cedula: string;           // solo lectura — no editable

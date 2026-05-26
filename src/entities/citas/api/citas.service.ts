@@ -57,12 +57,15 @@ export const citasService = {
     return response.data.datos || response.data;
   },
 
-  async obtenerCitasPorDoctorYFecha(doctorId: string, fecha: string): Promise<Cita[]> {
+  async obtenerSlotsOcupados(doctorId: string, fecha: string): Promise<string[]> {
     if (AUTH_PROVIDER === 'supabase') {
-      return supabaseCitasService.obtenerCitasPorDoctorYFecha(doctorId, fecha);
+      const citas = await supabaseCitasService.obtenerCitasPorDoctorYFecha(doctorId, fecha);
+      return citas.map((c) => c.horaInicio);
     }
-    const response = await apiClient.get<any>(`/citas?doctor=${doctorId}&fecha=${fecha}`);
-    return response.data.datos || response.data.data || [];
+    const response = await apiClient.get<any>('/citas/slots-ocupados', {
+      params: { doctor: doctorId, fecha },
+    });
+    return response.data.datos?.slotsOcupados || [];
   },
 
   async obtenerPerfilDoctor(id: string): Promise<any> {

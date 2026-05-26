@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '@/entities/auth/api/auth.service';
@@ -51,9 +51,31 @@ export function AgendarCitaPage() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState('');
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsMessage, setSlotsMessage] = useState('');
+  const [focusCount, setFocusCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocusCount((c) => c + 1);
+    }, [])
+  );
+
+  useEffect(() => {
+    if (focusCount > 1 && pageState === 'ready') {
+      setDoctorSel('');
+      setFecha('');
+      setHoraInicio('');
+      setHoraFin('');
+      setMotivo('');
+      setSelectedSlot('');
+      setAvailableSlots([]);
+      setOccupiedSlots([]);
+      setFeedback(null);
+    }
+  }, [focusCount, pageState]);
 
   const cargarDatos = async () => {
     setPageState('loading');
@@ -91,6 +113,22 @@ export function AgendarCitaPage() {
     cargarDatos();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (pageState === 'ready') {
+        setDoctorSel('');
+        setFecha('');
+        setHoraInicio('');
+        setHoraFin('');
+        setMotivo('');
+        setSelectedSlot('');
+        setAvailableSlots([]);
+        setOccupiedSlots([]);
+        setFeedback(null);
+      }
+    }, [pageState])
+  );
+
   const cargarSlots = useCallback(async () => {
     if (!doctorSel || !fecha) return;
     setLoadingSlots(true);
@@ -99,6 +137,7 @@ export function AgendarCitaPage() {
     setHoraFin('');
     setSlotsMessage('');
     setAvailableSlots([]);
+    setOccupiedSlots([]);
 
     try {
       const docData = doctores.find((d) => d._id === doctorSel) as any;
@@ -122,7 +161,31 @@ export function AgendarCitaPage() {
 
       if (slots.length === 0) {
         setSlotsMessage('No hay horarios disponibles para esta fecha');
+        setAvailableSlots(slots);
+        return;
       }
+
+      let ocupados: string[] = [];
+      try {
+        ocupados = await citasService.obtenerSlotsOcupados(doctorSel, fecha);
+      } catch (e) {
+        console.warn('Error al obtener slots ocupados:', e);
+      }
+
+      const hoy = new Date();
+      const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+      if (fecha === hoyStr) {
+        const horaActual = hoy.getHours();
+        const minActual = hoy.getMinutes();
+        const ahoraMin = horaActual * 60 + minActual;
+        ocupados = ocupados.concat(
+          slots.filter((s) => {
+            const [h, m] = s.split(':').map(Number);
+            return h * 60 + m < ahoraMin;
+          })
+        );
+      }
+      setOccupiedSlots(ocupados);
       setAvailableSlots(slots);
     } catch (e: any) {
       const msg = e.response?.data?.mensaje || e.response?.data?.error || e.message || 'Error al cargar horarios disponibles';
@@ -137,6 +200,7 @@ export function AgendarCitaPage() {
   }, [cargarSlots]);
 
   const handleSlotSelect = (slot: string) => {
+    if (occupiedSlots.includes(slot)) return;
     setSelectedSlot(slot);
     setHoraInicio(slot);
     setHoraFin(sumarMinutos(slot, SLOT_DURACION));
@@ -284,6 +348,7 @@ export function AgendarCitaPage() {
                 setFeedback(null);
               }}
               minimumDate={new Date()}
+              maximumDate={new Date(Date.now() + 365.25 * 3 * 24 * 60 * 60 * 1000)}
             />
 
             {doctorSel && fecha ? (
@@ -299,20 +364,32 @@ export function AgendarCitaPage() {
                 ) : availableSlots.length > 0 ? (
                   <View style={styles.slotsGrid}>
                     {availableSlots.map((slot) => {
+                      const isOccupied = occupiedSlots.includes(slot);
                       const isSelected = slot === selectedSlot;
                       return (
                         <TouchableOpacity
                           key={slot}
-                          style={[styles.slotChip, isSelected && styles.slotChipSelected]}
+                          disabled={isOccupied}
+                          style={[
+                            styles.slotChip,
+                            isSelected && styles.slotChipSelected,
+                            isOccupied && styles.slotChipOccupied,
+                          ]}
                           onPress={() => handleSlotSelect(slot)}
-                          activeOpacity={0.7}
+                          activeOpacity={isOccupied ? 1 : 0.7}
                         >
                           <Ionicons
-                            name={isSelected ? 'checkmark-circle' : 'time-outline'}
+                            name={isOccupied ? 'lock-closed' : isSelected ? 'checkmark-circle' : 'time-outline'}
                             size={16}
-                            color={isSelected ? colors.white : colors.primary}
+                            color={isOccupied ? colors.gray[300] : isSelected ? colors.white : colors.primary}
                           />
-                          <Text style={[styles.slotChipText, isSelected && styles.slotChipTextSelected]}>
+                          <Text
+                            style={[
+                              styles.slotChipText,
+                              isSelected && styles.slotChipTextSelected,
+                              isOccupied && styles.slotChipTextOccupied,
+                            ]}
+                          >
                             {slot}
                           </Text>
                         </TouchableOpacity>
@@ -525,6 +602,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
+  slotChipOccupied: {
+    borderColor: colors.gray[200],
+    backgroundColor: colors.gray[50],
+    opacity: 0.55,
+  },
   slotChipText: {
     fontSize: 14,
     fontWeight: '600',
@@ -532,6 +614,9 @@ const styles = StyleSheet.create({
   },
   slotChipTextSelected: {
     color: colors.white,
+  },
+  slotChipTextOccupied: {
+    color: colors.gray[300],
   },
   slotSummary: {
     flexDirection: 'row',

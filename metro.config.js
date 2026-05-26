@@ -1,12 +1,7 @@
-const { getDefaultConfig } = require("expo/metro-config");
-const { withTamagui } = require("@tamagui/metro-plugin");
-const { withNativeWind } = require("nativewind/metro");
+// Learn more https://docs.expo.io/guides/customizing-metro
+const { getDefaultConfig } = require('expo/metro-config');
 
-let config = getDefaultConfig(__dirname, { isCSSEnabled: true });
+/** @type {import('expo/metro-config').MetroConfig} */
+const config = getDefaultConfig(__dirname);
 
-config = withTamagui(config, {
-  components: ["tamagui"],
-  config: "./tamagui.config.ts",
-});
-
-module.exports = withNativeWind(config, { input: "./global.css" });
+module.exports = config;
