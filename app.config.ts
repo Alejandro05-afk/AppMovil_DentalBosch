@@ -5,6 +5,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: "DentalBosch",
     slug: "dentalbosch",
+    scheme: "dentalbosch",
     userInterfaceStyle: "automatic",
     extra: {
       eas: {

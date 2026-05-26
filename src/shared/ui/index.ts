@@ -7,4 +7,5 @@ export { Card } from './Card';
 export { Divider } from './Divider';
 export { OtpInput } from './OtpInput';
 export { DatePicker } from './DatePicker';
+export { TamaguiAppProvider } from './TamaguiAppProvider';
 export { colors, spacing, borderRadius, shadows } from './theme';

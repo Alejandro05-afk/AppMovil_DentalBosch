@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '@/entities/auth/api/auth.service';
 import { citasService } from '@/entities/citas/api/citas.service';
 import { DoctorItem } from '@/entities/citas/model/citas.types';
+import { supabase } from '@/shared/api/supabaseClient';
 import { apiClient } from '@/shared/api/apiClient';
 import { Button, Card, Input, DatePicker, LoadingScreen, ErrorScreen, colors, spacing } from '@/shared/ui';
 
@@ -85,9 +86,17 @@ export function AgendarCitaPage() {
         setPageState('no-acceso');
         return;
       }
-      const pacResp = await apiClient.get<any>('/pacientes/perfil/paciente');
-      const pacData = pacResp.data?.datos || pacResp.data?.data || pacResp.data;
-      const idPaciente = pacData._id || pacData.id || '';
+
+      const AUTH_PROVIDER = process.env.EXPO_PUBLIC_AUTH_PROVIDER || 'backend';
+      let idPaciente = '';
+      if (AUTH_PROVIDER === 'supabase') {
+        const user = (await supabase!.auth.getUser()).data.user;
+        idPaciente = user?.id || '';
+      } else {
+        const pacResp = await apiClient.get<any>('/pacientes/perfil/paciente');
+        const pacData = pacResp.data?.datos || pacResp.data?.data || pacResp.data;
+        idPaciente = pacData._id || pacData.id || '';
+      }
       if (!idPaciente) throw new Error('No se pudo obtener el ID del paciente');
       setPacienteId(idPaciente);
 
