@@ -2,9 +2,6 @@ import { apiClient, publicApiClient } from '@/shared/api/apiClient';
 import { RegisterRequest, LoginRequest, AuthResponse } from '../model/auth.types';
 import { UserProfile } from '@/entities/user/model/user.types';
 import { DoctorProfile } from '@/entities/doctor/model/doctor.types';
-import { supabaseAuthService } from './supabaseAuth.service';
-
-const AUTH_PROVIDER = process.env.EXPO_PUBLIC_AUTH_PROVIDER || 'backend';
 
 function formatDate(value: string): string {
   return value ? value.split('T')[0] : '';
@@ -36,40 +33,20 @@ function mapFullProfile(data: any): UserProfile {
 
 export const authService = {
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    if (AUTH_PROVIDER === 'supabase') {
-      return supabaseAuthService.register(data);
-    }
     const response = await publicApiClient.post<any>('/auth/registro', data);
     return response.data;
   },
 
   async login(data: LoginRequest): Promise<AuthResponse> {
-    if (AUTH_PROVIDER === 'supabase') {
-      return supabaseAuthService.login(data);
-    }
     const response = await publicApiClient.post<any>('/auth/login', data);
     return response.data;
   },
 
-  async loginWithGoogle(): Promise<AuthResponse> {
-    if (AUTH_PROVIDER === 'supabase') {
-      return supabaseAuthService.loginWithGoogle();
-    }
-    throw new Error('El inicio de sesión social con Google solo está soportado a través de Supabase en esta configuración.');
-  },
-
   async logout(): Promise<void> {
-    if (AUTH_PROVIDER === 'supabase') {
-      await supabaseAuthService.logout();
-    }
-    // Para backend se maneja principalmente limpiando el almacenamiento local
+    // Se maneja limpiando el almacenamiento local desde el AuthContext
   },
 
   async getProfile(): Promise<UserProfile> {
-    if (AUTH_PROVIDER === 'supabase') {
-      const profile = await supabaseAuthService.getProfile();
-      return profile as any;
-    }
     const response = await apiClient.get<any>('/auth/perfil');
     const data = response.data?.data || response.data?.datos || response.data;
     return {
@@ -96,9 +73,6 @@ export const authService = {
   },
 
   async recuperarPassword(email: string): Promise<any> {
-    if (AUTH_PROVIDER === 'supabase') {
-      return supabaseAuthService.recuperarPassword(email);
-    }
     const response = await publicApiClient.post<any>('/auth/recuperar-password', { email });
     return response.data;
   },
@@ -109,13 +83,6 @@ export const authService = {
   },
 
   async restablecerPassword(codigo: string, password: string): Promise<any> {
-    if (AUTH_PROVIDER === 'supabase') {
-      const supabase = (await import('@/shared/api/supabaseClient')).supabase;
-      if (!supabase) throw new Error('Supabase no está configurado');
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      return { mensaje: 'Contraseña actualizada exitosamente' };
-    }
     const response = await publicApiClient.post<any>('/auth/restablecer-password', { codigo, password });
     return response.data;
   },

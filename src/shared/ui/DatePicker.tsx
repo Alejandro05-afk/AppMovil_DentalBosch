@@ -67,6 +67,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handleConfirm = () => {
+    if (!value) {
+      onChange(formatToDbDate(new Date()));
+    }
     setShowModal(false);
   };
 

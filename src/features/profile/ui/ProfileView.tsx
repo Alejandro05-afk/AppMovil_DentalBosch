@@ -50,9 +50,6 @@ export function ProfileView({ profile, onEdit, onChangePassword }: ProfileViewPr
       <Card variant="elevated" style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Dirección</Text>
-          <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
-            <Ionicons name="pencil" size={20} color={colors.primary} />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.dataRow}>
@@ -73,9 +70,6 @@ export function ProfileView({ profile, onEdit, onChangePassword }: ProfileViewPr
       <Card variant="elevated" style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Contacto de emergencia</Text>
-          <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
-            <Ionicons name="pencil" size={20} color={colors.primary} />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.dataRow}>

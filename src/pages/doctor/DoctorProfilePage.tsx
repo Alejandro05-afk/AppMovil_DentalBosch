@@ -118,7 +118,7 @@ export function DoctorProfilePage() {
                   <Ionicons name="mail-outline" size={16} color={colors.gray[400]} />
                   <Text style={styles.dataLabel}>Email:</Text>
                   <View style={styles.lockedValue}>
-                    <Text style={styles.dataValueLocked}>{profile.usuario.email}</Text>
+                    <Text style={styles.dataValueLocked} numberOfLines={1} ellipsizeMode="tail">{profile.usuario.email}</Text>
                     <Ionicons name="lock-closed" size={14} color={colors.gray[400]} />
                   </View>
                 </View>
@@ -133,9 +133,6 @@ export function DoctorProfilePage() {
                 <View style={styles.sectionHeader}>
                   <Ionicons name="briefcase" size={20} color={colors.primary} />
                   <Text style={styles.sectionTitle}>Información Profesional</Text>
-                  <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editBtn}>
-                    <Ionicons name="pencil" size={18} color={colors.primary} />
-                  </TouchableOpacity>
                 </View>
 
                   <View style={styles.dataRow}>
@@ -353,12 +350,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: 4,
-    alignSelf: 'flex-start',
   },
   dataValueLocked: {
     fontSize: 14,
     color: colors.gray[500],
     fontWeight: '500',
+    flexShrink: 1,
   },
   editBtn: {
     padding: spacing.xs,

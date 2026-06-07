@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { colors, spacing, Card, Input, LoadingScreen, EmptyState } from '@/shared/ui';
 import { pacienteService } from '@/entities/paciente/api/paciente.service';
-import { PacienteDoctor, ConsultaHistorial } from '@/entities/paciente/model/paciente.types';
+import { PacienteDoctor } from '@/entities/paciente/model/paciente.types';
 
 function val<T>(obj: any, ...keys: string[]): T | undefined {
   for (const k of keys) {
@@ -45,7 +45,7 @@ function renderTexto(v: any): React.ReactNode {
 
 function valorToString(val: any): string {
   if (!val) return '';
-  if (typeof val === 'string') return val;
+  if (typeof val === 'string') return val === 'undefined' ? '' : val;
   if (typeof val === 'number' || typeof val === 'boolean') return String(val);
   if (typeof val === 'object') {
     const u = val.usuario || {};
@@ -57,6 +57,7 @@ function valorToString(val: any): string {
 }
 
 function renderDetalleObjeto(obj: Record<string, any>): React.ReactNode {
+  if (!obj || typeof obj !== 'object') return null;
   const ignore = new Set(['_id', 'codigo']);
   return Object.entries(obj)
     .filter(([k]) => !ignore.has(k))
@@ -76,6 +77,7 @@ function renderDetalleObjeto(obj: Record<string, any>): React.ReactNode {
 
 function renderTratamientos(items: any[]): React.ReactNode {
   return items.map((item: any, i: number) => {
+    if (!item) return null;
     if (typeof item === 'string') return <Text key={i} style={styles.consultaText}>• {item}</Text>;
     if (typeof item !== 'object') return <Text key={i} style={styles.consultaText}>• {String(item)}</Text>;
     return (
@@ -100,15 +102,27 @@ export function MisPacientesList() {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [pacienteNombre, setPacienteNombre] = useState('');
-  const [ultimaConsulta, setUltimaConsulta] = useState<ConsultaHistorial | null>(null);
+  const [ultimaConsulta, setUltimaConsulta] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [historialError, setHistorialError] = useState('');
+
+  const [emergenciaMap, setEmergenciaMap] = useState<Record<string, { nombre?: string; telefono?: string }>>({});
 
   const fetchPacientes = useCallback(async () => {
     try {
       const data = await pacienteService.obtenerMisPacientes();
       setPacientes(data);
+      const map: Record<string, any> = {};
+      await Promise.allSettled(data.map(async (p: any) => {
+        try {
+          const detalle = await pacienteService.obtenerDetallePaciente(p._id);
+          if (detalle?.contactoEmergencia?.nombre || detalle?.contactoEmergencia?.telefono) {
+            map[p._id] = detalle.contactoEmergencia;
+          }
+        } catch {}
+      }));
+      setEmergenciaMap(map);
       setError('');
     } catch (e: any) {
       const msg = e.response?.data?.mensaje || e.response?.data?.error || e.message || 'Error al cargar pacientes';
@@ -169,7 +183,8 @@ export function MisPacientesList() {
       const historial = await pacienteService.obtenerHistorialClinico(paciente._id);
       const consultas = historial.consultas;
       if (consultas && consultas.length > 0) {
-        setUltimaConsulta(consultas[consultas.length - 1]);
+        const ultima = consultas[consultas.length - 1];
+        setUltimaConsulta(ultima);
       } else {
         setUltimaConsulta(null);
       }
@@ -214,6 +229,18 @@ export function MisPacientesList() {
                 <Text style={styles.infoText}>{telefonoPaciente(paciente)}</Text>
               </View>
             ) : null}
+            {(() => {
+              const ec = emergenciaMap[paciente._id];
+              if (!ec?.nombre && !ec?.telefono) return null;
+              return (
+                <View style={styles.infoRow}>
+                  <Ionicons name="alert-circle-outline" size={14} color={colors.danger} />
+                  <Text style={[styles.infoText, { color: colors.danger }]} numberOfLines={1}>
+                    {ec.nombre || ''}{ec.nombre && ec.telefono ? ' · ' : ''}{ec.telefono || ''}
+                  </Text>
+                </View>
+              );
+            })()}
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.gray[300]} />
         </View>
@@ -309,32 +336,84 @@ export function MisPacientesList() {
                         </Text>
                       </View>
 
-                      {ultimaConsulta.motivo ? (
-                        <View style={styles.consultaBlock}>
-                          <Text style={styles.consultaLabel}>Motivo de consulta</Text>
-                          {renderTexto(ultimaConsulta.motivo)}
-                        </View>
-                      ) : null}
+                      {(() => {
+                        const motivoTexto = ultimaConsulta.motivoConsulta || ultimaConsulta.motivo || ultimaConsulta.cita?.motivo || '';
+                        if (!motivoTexto) return null;
+                        return (
+                          <View style={styles.consultaBlock}>
+                            <Text style={styles.consultaLabel}>Motivo de consulta</Text>
+                            {renderTexto(motivoTexto)}
+                          </View>
+                        );
+                      })()}
 
-                      {ultimaConsulta.observaciones ? (
-                        <View style={styles.consultaBlock}>
-                          <Text style={styles.consultaLabel}>Observaciones</Text>
-                          {typeof ultimaConsulta.observaciones === 'string'
-                            ? renderTexto(ultimaConsulta.observaciones)
-                            : Array.isArray(ultimaConsulta.observaciones)
-                              ? renderTratamientos(ultimaConsulta.observaciones)
-                              : renderDetalleObjeto(ultimaConsulta.observaciones)}
-                        </View>
-                      ) : null}
+                      {(() => {
+                        const obs = ultimaConsulta.observaciones;
+                        if (!obs) return null;
+                        return (
+                          <View style={styles.consultaBlock}>
+                            <Text style={styles.consultaLabel}>Observaciones</Text>
+                            {typeof obs === 'string'
+                              ? renderTexto(obs)
+                              : Array.isArray(obs)
+                                ? renderTratamientos(obs)
+                                : renderDetalleObjeto(obs)}
+                          </View>
+                        );
+                      })()}
 
-                      {ultimaConsulta.tratamientos ? (
-                        <View style={styles.consultaBlock}>
-                          <Text style={styles.consultaLabel}>Tratamientos</Text>
-                          {Array.isArray(ultimaConsulta.tratamientos)
-                            ? renderTratamientos([ultimaConsulta.tratamientos[ultimaConsulta.tratamientos.length - 1]])
-                            : renderDetalleObjeto(ultimaConsulta.tratamientos)}
-                        </View>
-                      ) : null}
+                      {(() => {
+                        const c = ultimaConsulta;
+                        const t = c.tratamientos;
+                        const arr = Array.isArray(t) ? t : (t ? [t] : []);
+                        const ultimo = arr[arr.length - 1];
+                        const proc = Array.isArray(ultimo?.procedimientos) ? ultimo.procedimientos : (ultimo?.procedimiento ? [ultimo.procedimiento] : []);
+                        const diag = ultimo?.diagnosticosComplicaciones || ultimo?.diagnostico || c.enfermedadActual?.descripcion || '';
+                        const presc = Array.isArray(ultimo?.prescripciones) ? ultimo.prescripciones : (ultimo?.prescripcion ? [ultimo.prescripcion] : []);
+                        const indic = ultimo?.indicaciones || '';
+                        const recom = c.planDiagnostico?.observaciones || c.planDiagnostico?.otros || '';
+                        const tieneContenido = proc.length > 0 || diag || presc.length > 0 || indic || recom;
+                        if (!tieneContenido) return null;
+                        return (
+                          <View style={styles.consultaBlock}>
+                            <Text style={styles.consultaLabel}>Tratamientos</Text>
+                            {diag ? (
+                              <View style={{ backgroundColor: '#FFF1F2', borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: '#FF4FA3', marginBottom: 8 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#FF4FA3', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Diagnóstico</Text>
+                                <Text style={{ fontSize: 14, color: '#0F172A', lineHeight: 20 }}>{diag}</Text>
+                              </View>
+                            ) : null}
+                            {proc.length > 0 ? (
+                              <View style={{ backgroundColor: '#F0FDFA', borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: '#38D6C4', marginBottom: 8 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#38D6C4', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Procedimientos</Text>
+                                {proc.map((p: string, i: number) => (
+                                  <Text key={i} style={{ fontSize: 14, color: '#0F172A', lineHeight: 20 }}>• {p}</Text>
+                                ))}
+                              </View>
+                            ) : null}
+                            {presc.length > 0 ? (
+                              <View style={{ backgroundColor: '#F5F3FF', borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: '#8B5CF6', marginBottom: 8 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Prescripciones</Text>
+                                {presc.map((p: string, i: number) => (
+                                  <Text key={i} style={{ fontSize: 14, color: '#0F172A', lineHeight: 20 }}>• {p}</Text>
+                                ))}
+                              </View>
+                            ) : null}
+                            {indic ? (
+                              <View style={{ backgroundColor: '#FFFBEB', borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#F59E0B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Indicaciones</Text>
+                                <Text style={{ fontSize: 14, color: '#0F172A', lineHeight: 20 }}>{indic}</Text>
+                              </View>
+                            ) : null}
+                            {recom ? (
+                              <View style={{ backgroundColor: '#F8FAFC', borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: '#94A3B8' }}>
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Recomendaciones</Text>
+                                <Text style={{ fontSize: 14, color: '#0F172A', lineHeight: 20 }}>{recom}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        );
+                      })()}
                     </View>
                   </>
                 ) : (
