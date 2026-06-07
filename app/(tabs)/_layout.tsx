@@ -1,8 +1,36 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/shared/ui/theme';
+import { authService } from '@/entities/auth/api/auth.service';
+import { onboardingStorage } from '@/shared/lib/onboardingStorage';
 
 export default function TabLayout() {
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const perfil = await authService.getProfile();
+        const userId = perfil.email || perfil.nombre || '';
+        const done = await onboardingStorage.isCompleted(userId);
+        if (!done) {
+          router.replace({
+            pathname: '/onboarding',
+            params: { userId, rol: perfil.rol },
+          });
+          return;
+        }
+      } catch {
+        // Si falla la verificación, continúa normalmente (no bloqueamos el acceso)
+      } finally {
+        setChecked(true);
+      }
+    })();
+  }, []);
+
+  if (!checked) return null;
+
   return (
     <Tabs
       screenOptions={{
