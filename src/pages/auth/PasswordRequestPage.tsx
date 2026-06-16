@@ -83,7 +83,7 @@ export function PasswordRequestPage() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.pageContent}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/login')}>
               <Ionicons name="arrow-back" size={22} color={colors.dark} />
             </TouchableOpacity>
 

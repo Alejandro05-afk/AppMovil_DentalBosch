@@ -34,7 +34,7 @@ export function HistorialClinicoPage() {
   if (error || !historial) return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <View style={{ backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 }}>
-        <Pressable onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Ionicons name="arrow-back" size={20} color="#0F172A" />
         </Pressable>
         <Text style={{ fontSize: 24, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 }}>Historial Clínico</Text>
@@ -52,7 +52,7 @@ export function HistorialClinicoPage() {
 
       {/* Header */}
       <View style={{ backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 }}>
-        <Pressable onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Ionicons name="arrow-back" size={20} color="#0F172A" />
         </Pressable>
         <Text style={{ fontSize: 24, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 }}>Historial Clínico</Text>

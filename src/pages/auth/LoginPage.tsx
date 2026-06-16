@@ -13,14 +13,33 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from '@tanstack/react-form';
-import { Input, Button, colors, spacing, Card } from '@/shared/ui';
+import { Input, Button, Divider, colors, spacing, Card } from '@/shared/ui';
 import { loginSchema } from '@/shared/lib/formSchemas';
 import { authService } from '@/entities/auth/api/auth.service';
 import { authStorage } from '@/shared/api/authStorage';
 import { registerPushToken } from '@/shared/hooks/usePushNotifications';
+import { signInWithGoogle } from '@/shared/api/googleAuth';
 
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      const success = await signInWithGoogle();
+      if (success) {
+        registerPushToken();
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Google no disponible', 'El inicio de sesión con Google requiere un APK generado. Usa correo y contraseña por ahora.');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const form = useForm({
     defaultValues: {
@@ -71,7 +90,7 @@ export function LoginPage() {
         >
           <View style={styles.centerContent}>
             <View style={styles.logoSection}>
-              <Image source={require('../../../assets/images/logo.jpeg')} style={styles.logoImage} />
+              <Image source={require('../../../assets/images/logo.png')} style={styles.logoImage} />
               <Text style={styles.appName}>DentalBosch</Text>
               <Text style={styles.tagline}>Gestión inteligente de tu consultorio</Text>
             </View>
@@ -134,6 +153,18 @@ export function LoginPage() {
                     iconPosition="right"
                   />
                 )}
+              />
+
+              <Divider label="o continua con" style={{ marginVertical: spacing.lg }} />
+
+              <Button
+                label="Google"
+                variant="outline"
+                size="lg"
+                loading={googleLoading}
+                onPress={handleGoogleLogin}
+                icon="logo-google"
+                iconPosition="left"
               />
 
             </Card>

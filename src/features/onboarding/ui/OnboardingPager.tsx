@@ -1,12 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  Animated,
   Dimensions,
-  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
-  ViewToken,
 } from 'react-native';
 import { OnboardingSlide } from './OnboardingSlide';
 import { OnboardingSlide as SlideType } from '../model/onboarding.slides';
@@ -20,141 +20,93 @@ interface Props {
 
 export function OnboardingPager({ slides, onFinish }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
 
   const isLast = currentIndex === slides.length - 1;
   const activeSlide = slides[currentIndex];
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0 && viewableItems[0].index != null) {
-        setCurrentIndex(viewableItems[0].index);
-      }
-    }
-  ).current;
-
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  const handleMomentumEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
+      setCurrentIndex(index);
+    },
+    []
+  );
 
   const goNext = () => {
     if (isLast) { onFinish(); return; }
-    flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+    scrollRef.current?.scrollTo({ x: (currentIndex + 1) * SCREEN_W, animated: true });
   };
 
-  const goBack = () => {
-    if (currentIndex === 0) return;
-    flatListRef.current?.scrollToIndex({ index: currentIndex - 1, animated: true });
-  };
+  const slidesHeight = 300;
 
   return (
-    <View className="flex-1 bg-light-bg">
-      <View className="flex-row justify-between items-center px-6 pt-4 pb-2">
-        <Text className="text-primary font-bold" style={{ fontSize: 16 }}>
+    <View style={{ flex: 1, backgroundColor: '#F8FAFC', justifyContent: 'center' }}>
+      <View className="mb-6">
+        <Text style={{ fontSize: 22, color: '#FF4FA3', fontWeight: '800', letterSpacing: -0.5, textAlign: 'center' }}>
           DentalBosch
         </Text>
-        {!isLast && (
-          <TouchableOpacity onPress={onFinish} className="px-3 py-2" activeOpacity={0.6}>
-            <Text style={{ fontSize: 14, color: '#94A3B8', fontWeight: '600' }}>
-              Omitir
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
 
-      <Animated.FlatList
-        ref={flatListRef}
-        data={slides}
-        keyExtractor={(item) => item.id}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        bounces={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
-        )}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        renderItem={({ item, index }) => (
-          <OnboardingSlide slide={item} isActive={index === currentIndex} />
-        )}
-        style={{ flex: 1 }}
-      />
+      <View style={{ height: slidesHeight }}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          bounces={false}
+          onMomentumScrollEnd={handleMomentumEnd}
+          style={{ flex: 1 }}
+        >
+          {slides.map((item) => (
+            <View key={item.id} style={{ width: SCREEN_W, height: slidesHeight }}>
+              <OnboardingSlide slide={item} />
+            </View>
+          ))}
+        </ScrollView>
 
-      <View className="px-6 pb-10 pt-2">
-        <View className="flex-row justify-center items-center mb-7">
-          {slides.map((_, index) => {
-            const inputRange = [
-              (index - 1) * SCREEN_W,
-              index * SCREEN_W,
-              (index + 1) * SCREEN_W,
-            ];
-            const dotWidth = scrollX.interpolate({
-              inputRange,
-              outputRange: [8, 22, 8],
-              extrapolate: 'clamp',
-            });
-            const opacity = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.3, 1, 0.3],
-              extrapolate: 'clamp',
-            });
-            return (
-              <Animated.View
-                key={index}
-                style={{
-                  width: dotWidth,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: activeSlide.accentColor,
-                  opacity,
-                  marginHorizontal: 3,
-                }}
-              />
-            );
-          })}
-        </View>
+      </View>
 
-        <View className="flex-row items-center gap-3">
-          {currentIndex > 0 && (
-            <TouchableOpacity
-              onPress={goBack}
-              activeOpacity={0.7}
-              style={{
-                borderWidth: 1.5,
-                borderColor: '#E2E8F0',
-                borderRadius: 16,
-                paddingVertical: 16,
-                paddingHorizontal: 20,
-                backgroundColor: '#FFFFFF',
-              }}
-            >
-              <Text style={{ fontSize: 16, color: '#0F172A', fontWeight: '700' }}>←</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            onPress={goNext}
-            activeOpacity={0.85}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 6 }}>
+        {slides.map((_, index) => (
+          <View
+            key={index}
             style={{
-              flex: 1,
-              backgroundColor: activeSlide.accentColor,
-              borderRadius: 16,
-              paddingVertical: 16,
-              alignItems: 'center',
-              shadowColor: activeSlide.accentColor,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: index === currentIndex ? activeSlide.accentColor : '#D1D5DB',
+              marginHorizontal: 4,
             }}
-          >
-            <Text style={{ fontSize: 16, color: '#FFFFFF', fontWeight: '800' }}>
-              {isLast ? '¡Comenzar!' : 'Siguiente'}
+          />
+        ))}
+      </View>
+
+      <View style={{ marginTop: 25, paddingHorizontal: 32 }}>
+        <TouchableOpacity
+          onPress={goNext}
+          activeOpacity={0.85}
+          style={{
+            width: '100%',
+            backgroundColor: activeSlide.accentColor,
+            borderRadius: 16,
+            paddingVertical: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 16, color: '#FFFFFF', fontWeight: '700' }}>
+            {isLast ? 'Comenzar!' : 'Siguiente'}
+          </Text>
+        </TouchableOpacity>
+
+        {!isLast && (
+          <TouchableOpacity onPress={onFinish} className="mt-4 items-center" activeOpacity={0.6}>
+            <Text style={{ fontSize: 14, color: '#94A3B8', fontWeight: '500' }}>
+              Omitir onboarding
             </Text>
           </TouchableOpacity>
-        </View>
+        )}
       </View>
     </View>
   );

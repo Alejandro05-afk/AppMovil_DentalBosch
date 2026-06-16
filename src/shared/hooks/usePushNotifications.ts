@@ -1,29 +1,46 @@
 import { useEffect, useRef, useState } from 'react';
-import * as Notifications from 'expo-notifications';
-import { notificationService } from '../lib/notificationService';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { authStorage } from '@/shared/api/authStorage';
 import { userService } from '@/entities/user/api/user.service';
 
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
+  const [notification, setNotification] = useState<any>(null);
 
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+  const notificationListener = useRef<any>();
+  const responseListener = useRef<any>();
 
   useEffect(() => {
-    registerPushToken().then(setExpoPushToken);
+    if (isExpoGo) return;
 
-    notificationListener.current = Notifications.addNotificationReceivedListener((notif) => {
-      setNotification(notif);
-    });
+    let mounted = true;
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      console.log('Datos adjuntos de la notificación pulsada:', data);
-    });
+    (async () => {
+      const mod = await import('expo-notifications');
+      const Notifications = mod.default ?? mod;
+
+      if (!mounted) return;
+
+      const { default: notificationService } = await import('../lib/notificationService');
+
+      notificationService.registerForPushNotificationsAsync().then((token: string | null) => {
+        if (mounted) setExpoPushToken(token);
+      });
+
+      notificationListener.current = Notifications.addNotificationReceivedListener((notif: any) => {
+        if (mounted) setNotification(notif);
+      });
+
+      responseListener.current = Notifications.addNotificationResponseReceivedListener((response: any) => {
+        const data = response.notification.request.content.data;
+        console.log('Datos adjuntos de la notificación pulsada:', data);
+      });
+    })();
 
     return () => {
+      mounted = false;
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
@@ -33,6 +50,9 @@ export function usePushNotifications() {
 }
 
 export async function registerPushToken() {
+  if (isExpoGo) return null;
+
+  const { default: notificationService } = await import('../lib/notificationService');
   const token = await notificationService.registerForPushNotificationsAsync();
   if (!token) return null;
 

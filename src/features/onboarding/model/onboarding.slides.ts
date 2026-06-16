@@ -31,13 +31,13 @@ export const PATIENT_SLIDES: OnboardingSlide[] = [
   },
   {
     id: 'p3',
-    icon: 'notifications-outline',
+    icon: 'close-circle-outline',
     iconBg: '#FFF0F7',
     iconColor: '#FF4FA3',
     accentColor: '#FF4FA3',
-    title: 'Notificaciones al instante',
+    title: 'Cancelación directa',
     description:
-      'Recibe alertas cuando el doctor confirme o modifique tu cita. Nunca te perderás una actualización importante.',
+      'Si no puedes asistir, cancela tu cita desde la app con solo un toque. Sin llamadas ni trámites.',
   },
   {
     id: 'p4',

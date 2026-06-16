@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Text, View } from 'react-native';
+import React from 'react';
+import { Dimensions, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { OnboardingSlide as SlideType } from '../model/onboarding.slides';
 
@@ -7,48 +7,12 @@ const { width: SCREEN_W } = Dimensions.get('window');
 
 interface Props {
   slide: SlideType;
-  isActive: boolean;
 }
 
-export function OnboardingSlide({ slide, isActive }: Props) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(24)).current;
-  const scaleIcon = useRef(new Animated.Value(0.72)).current;
-
-  useEffect(() => {
-    if (isActive) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 380,
-          useNativeDriver: true,
-        }),
-        Animated.spring(translateY, {
-          toValue: 0,
-          tension: 65,
-          friction: 9,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleIcon, {
-          toValue: 1,
-          tension: 65,
-          friction: 9,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      fadeAnim.setValue(0);
-      translateY.setValue(24);
-      scaleIcon.setValue(0.72);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
-
+export function OnboardingSlide({ slide }: Props) {
   return (
-    <View style={{ width: SCREEN_W }} className="flex-1 items-center justify-center px-8">
-      <Animated.View
-        style={{ transform: [{ scale: scaleIcon }], opacity: fadeAnim, marginBottom: 44 }}
-      >
+    <View style={{ width: SCREEN_W, flex: 1, alignItems: 'center', justifyContent: 'center' }} className="px-8">
+      <View style={{ marginBottom: 44, alignItems: 'center' }}>
         <View
           style={{
             position: 'absolute',
@@ -73,12 +37,9 @@ export function OnboardingSlide({ slide, isActive }: Props) {
         >
           <Ionicons name={slide.icon as any} size={64} color={slide.iconColor} />
         </View>
-      </Animated.View>
+      </View>
 
-      <Animated.View
-        style={{ opacity: fadeAnim, transform: [{ translateY }] }}
-        className="items-center"
-      >
+      <View className="items-center">
         <Text
           className="text-dark text-center font-bold mb-4"
           style={{ fontSize: 26, lineHeight: 32, letterSpacing: -0.5 }}
@@ -91,7 +52,7 @@ export function OnboardingSlide({ slide, isActive }: Props) {
         >
           {slide.description}
         </Text>
-      </Animated.View>
+      </View>
     </View>
   );
 }

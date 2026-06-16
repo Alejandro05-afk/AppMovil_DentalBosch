@@ -1,18 +1,24 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 export const notificationService = {
   registerForPushNotificationsAsync: async (): Promise<string | null> => {
     if (!Platform.isBackground && Platform.OS === 'web') return null;
+
+    const mod = await import('expo-notifications');
+    const Notifications = mod.default ?? mod;
+
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+    } catch {
+      // Not available in Expo Go on Android (SDK 53+)
+    }
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('appointments-alerts', {

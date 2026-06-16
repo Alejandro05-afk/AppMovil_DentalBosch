@@ -263,7 +263,7 @@ export function MisCitasPage() {
         <YStack padding="$5" paddingBottom="$8" gap="$4">
           <XStack alignItems="center" gap="$3">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
               style={styles.backButton}
               activeOpacity={0.7}
             >

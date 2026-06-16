@@ -17,7 +17,7 @@ export function ChangePasswordPage() {
       Alert.alert('Éxito', 'Contraseña actualizada correctamente ✅', [
         {
           text: 'Aceptar',
-          onPress: () => router.back(),
+          onPress: () => router.canGoBack() ? router.back() : router.replace('/(tabs)'),
         }
       ]);
     } catch (error: any) {
@@ -32,7 +32,7 @@ export function ChangePasswordPage() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
           <Ionicons name="arrow-back" size={24} color={colors.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Seguridad</Text>
