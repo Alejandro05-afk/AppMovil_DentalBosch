@@ -18,28 +18,15 @@ import { loginSchema } from '@/shared/lib/formSchemas';
 import { authService } from '@/entities/auth/api/auth.service';
 import { authStorage } from '@/shared/api/authStorage';
 import { registerPushToken } from '@/shared/hooks/usePushNotifications';
-import { signInWithGoogle } from '@/shared/api/googleAuth';
+import { useGoogleAuth } from '@/shared/api/googleAuth';
 
 export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
-    setGoogleLoading(true);
-    try {
-      const success = await signInWithGoogle();
-      if (success) {
-        registerPushToken();
-        router.replace('/(tabs)');
-      } else {
-        Alert.alert('Google no disponible', 'El inicio de sesión con Google requiere un APK generado. Usa correo y contraseña por ahora.');
-      }
-    } catch (error) {
-      console.error('Google login error:', error);
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+  const { promptAsync: googlePromptAsync, googleLoading, disabled: googleDisabled } = useGoogleAuth(() => {
+    registerPushToken();
+    router.replace('/(tabs)');
+  });
 
   const form = useForm({
     defaultValues: {
@@ -162,7 +149,8 @@ export function LoginPage() {
                 variant="outline"
                 size="lg"
                 loading={googleLoading}
-                onPress={handleGoogleLogin}
+                disabled={googleDisabled}
+                onPress={() => googlePromptAsync()}
                 icon="logo-google"
                 iconPosition="left"
               />
