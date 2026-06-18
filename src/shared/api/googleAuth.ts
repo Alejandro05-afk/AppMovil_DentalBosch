@@ -1,24 +1,28 @@
+import * as Google from 'expo-auth-session/providers/google';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import { authStorage } from './authStorage';
 import { publicApiClient } from './apiClient';
+import { authStorage } from './authStorage';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
 const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || WEB_CLIENT_ID;
+const PROXY_REDIRECT_URL = 'https://auth.expo.io/@alejoafk_05/dentalbosch';
 
 export function useGoogleAuth(onSuccess?: () => void) {
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const redirectUrl = Linking.createURL('');
+  
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     expoClientId: WEB_CLIENT_ID,
     iosClientId: IOS_CLIENT_ID,
     androidClientId: ANDROID_CLIENT_ID,
-    webClientId: WEB_CLIENT_ID,
+    redirectUri: redirectUrl,
   });
 
   useEffect(() => {

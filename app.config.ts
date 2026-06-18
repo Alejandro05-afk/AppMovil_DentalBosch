@@ -5,6 +5,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: "DentalBosch",
     slug: "dentalbosch",
+    owner: "alejoafk_05",
     scheme: "dentalbosch",
     userInterfaceStyle: "automatic",
     extra: {
@@ -14,9 +15,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     icon: "./assets/images/logo.png",
     plugins: [
-      ["@react-native-google-signin/google-signin", {
-        iosUrlScheme: "com.googleusercontent.apps.108646556094-ukhtgll2jcq4l3jnmrf1kh2s9c22pb8i",
-      }],
+    //   ["@react-native-google-signin/google-signin", {
+    //     iosUrlScheme: "com.googleusercontent.apps.108646556094-ukhtgll2jcq4l3jnmrf1kh2s9c22pb8i",
+    //   }],
     ],
     android: {
       package: 'com.dentalbosch',
