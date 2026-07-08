@@ -1,32 +1,27 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useForm } from '@tanstack/react-form';
-import { Input, Button, Divider, colors, spacing, Card } from '@/shared/ui';
-import { loginSchema } from '@/shared/lib/formSchemas';
 import { authService } from '@/entities/auth/api/auth.service';
-import { authStorage } from '@/shared/api/authStorage';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { registerPushToken } from '@/shared/hooks/usePushNotifications';
-import { useGoogleAuth } from '@/shared/api/googleAuth';
+import { loginSchema } from '@/shared/lib/formSchemas';
+import { Button, Card, colors, Input, spacing } from '@/shared/ui';
+import { useForm } from '@tanstack/react-form';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import {
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function LoginPage() {
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-
-  const { promptAsync: googlePromptAsync, googleLoading, disabled: googleDisabled } = useGoogleAuth(() => {
-    registerPushToken();
-    router.replace('/(tabs)');
-  });
 
   const form = useForm({
     defaultValues: {
@@ -50,9 +45,8 @@ export function LoginPage() {
       try {
         const response = await authService.login({ email: value.email, password: value.password });
         if (response.token) {
-          await authStorage.setToken(response.token);
+          await login(response.token);
           registerPushToken();
-          router.replace('/(tabs)');
         } else {
           Alert.alert('Error', response.mensaje || 'Credenciales inválidas');
         }
@@ -140,19 +134,6 @@ export function LoginPage() {
                     iconPosition="right"
                   />
                 )}
-              />
-
-              <Divider label="o continua con" style={{ marginVertical: spacing.lg }} />
-
-              <Button
-                label="Google"
-                variant="outline"
-                size="lg"
-                loading={googleLoading}
-                disabled={googleDisabled}
-                onPress={() => googlePromptAsync()}
-                icon="logo-google"
-                iconPosition="left"
               />
 
             </Card>

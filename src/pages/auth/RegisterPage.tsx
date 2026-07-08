@@ -1,30 +1,28 @@
-import React, { useMemo, useState } from 'react';
+import { authService } from '@/entities/auth/api/auth.service';
+import { registerPushToken } from '@/shared/hooks/usePushNotifications';
 import {
-  View,
-  Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+    birthDateSchema,
+    emailSchema,
+    PASSWORD_RULES,
+    passwordSchema,
+} from '@/shared/lib/formSchemas';
+import { Button, Card, colors, DatePicker, Input, spacing } from '@/shared/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useForm } from '@tanstack/react-form';
-import { z } from 'zod';
-import { Input, Button, Divider, colors, spacing, Card, DatePicker } from '@/shared/ui';
-import { authService } from '@/entities/auth/api/auth.service';
-import { authStorage } from '@/shared/api/authStorage';
-import { registerPushToken } from '@/shared/hooks/usePushNotifications';
-import { useGoogleAuth } from '@/shared/api/googleAuth';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
 import {
-  emailSchema,
-  passwordSchema,
-  birthDateSchema,
-  PASSWORD_RULES,
-} from '@/shared/lib/formSchemas';
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { z } from 'zod';
 
 const GENDERS = ['masculino', 'femenino', 'otro'];
 const PARENTESCOS = ['madre', 'padre', 'hermano/a', 'esposo/a', 'hijo/a', 'otro'];
@@ -55,14 +53,11 @@ const registerSchema = z.object({
 });
 
 export function RegisterPage() {
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [showParentescoPicker, setShowParentescoPicker] = useState(false);
   const [showPasswordRules, setShowPasswordRules] = useState(true);
-  const { promptAsync: googlePromptAsync, googleLoading, disabled: googleDisabled } = useGoogleAuth(() => {
-    registerPushToken();
-    router.replace('/(tabs)');
-  });
 
   const form = useForm({
     defaultValues: {
@@ -125,7 +120,7 @@ export function RegisterPage() {
 
         const response = await authService.register(payload);
         if (response.token) {
-          await authStorage.setToken(response.token);
+          await login(response.token);
           registerPushToken();
           router.replace('/(tabs)');
         } else {
@@ -619,19 +614,6 @@ export function RegisterPage() {
                   containerStyle={styles.submitBtn}
                 />
               )}
-            />
-
-            <Divider label="o regístrate con" style={{ marginVertical: spacing.lg }} />
-
-            <Button
-              label="Google"
-              variant="outline"
-              size="lg"
-              loading={googleLoading}
-              disabled={googleDisabled}
-              onPress={() => googlePromptAsync()}
-              icon="logo-google"
-              iconPosition="left"
             />
 
             <View style={styles.loginLinkSection}>

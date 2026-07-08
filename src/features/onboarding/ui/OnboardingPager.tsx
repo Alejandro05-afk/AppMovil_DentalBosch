@@ -38,17 +38,15 @@ export function OnboardingPager({ slides, onFinish }: Props) {
     scrollRef.current?.scrollTo({ x: (currentIndex + 1) * SCREEN_W, animated: true });
   };
 
-  const slidesHeight = 300;
-
   return (
-    <View style={{ flex: 1, backgroundColor: '#F8FAFC', justifyContent: 'center' }}>
-      <View className="mb-6">
+    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+      <View style={{ paddingTop: 12, paddingBottom: 4 }}>
         <Text style={{ fontSize: 22, color: '#FF4FA3', fontWeight: '800', letterSpacing: -0.5, textAlign: 'center' }}>
           DentalBosch
         </Text>
       </View>
 
-      <View style={{ height: slidesHeight }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -59,15 +57,14 @@ export function OnboardingPager({ slides, onFinish }: Props) {
           style={{ flex: 1 }}
         >
           {slides.map((item) => (
-            <View key={item.id} style={{ width: SCREEN_W, height: slidesHeight }}>
+            <View key={item.id} style={{ width: SCREEN_W, flex: 1 }}>
               <OnboardingSlide slide={item} />
             </View>
           ))}
         </ScrollView>
-
       </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 6 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 8 }}>
         {slides.map((_, index) => (
           <View
             key={index}
@@ -82,7 +79,7 @@ export function OnboardingPager({ slides, onFinish }: Props) {
         ))}
       </View>
 
-      <View style={{ marginTop: 25, paddingHorizontal: 32 }}>
+      <View style={{ paddingHorizontal: 32, paddingBottom: 8 }}>
         <TouchableOpacity
           onPress={goNext}
           activeOpacity={0.85}
@@ -101,8 +98,8 @@ export function OnboardingPager({ slides, onFinish }: Props) {
         </TouchableOpacity>
 
         {!isLast && (
-          <TouchableOpacity onPress={onFinish} className="mt-4 items-center" activeOpacity={0.6}>
-            <Text style={{ fontSize: 14, color: '#94A3B8', fontWeight: '500' }}>
+          <TouchableOpacity onPress={onFinish} style={{ paddingVertical: 12 }} activeOpacity={0.6}>
+            <Text style={{ fontSize: 14, color: '#94A3B8', fontWeight: '500', textAlign: 'center' }}>
               Omitir onboarding
             </Text>
           </TouchableOpacity>

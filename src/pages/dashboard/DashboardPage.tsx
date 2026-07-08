@@ -1,18 +1,18 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import LottieView from 'lottie-react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Button,
-  Card,
-  H2,
-  Paragraph,
-  ScrollView,
-  Text,
-  XStack,
-  YStack,
+    Button,
+    Card,
+    H2,
+    Paragraph,
+    ScrollView,
+    Text,
+    XStack,
+    YStack,
 } from 'tamagui';
 
 import { authService } from '@/entities/auth/api/auth.service';
@@ -20,7 +20,7 @@ import { UserProfile } from '@/entities/auth/model/auth.types';
 import { citasService } from '@/entities/citas/api/citas.service';
 import { CitaPaciente } from '@/entities/citas/model/citas.types';
 import { MisPacientesList } from '@/features/doctor';
-import { authStorage } from '@/shared/api/authStorage';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { colors, LoadingScreen } from '@/shared/ui';
 
 function getEstadoInfo(estado: string | any): { texto: string; color: string } {
@@ -37,6 +37,7 @@ function getEstadoInfo(estado: string | any): { texto: string; color: string } {
 }
 
 export function DashboardPage() {
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [citas, setCitas] = useState<CitaPaciente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,8 +75,7 @@ export function DashboardPage() {
   }, [fetchData]);
 
   const handleLogout = async () => {
-    await authStorage.removeToken();
-    router.replace('/(auth)/login');
+    await logout();
   };
 
   const stats = useMemo(() => {

@@ -4,11 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/shared/ui/theme';
 import { authService } from '@/entities/auth/api/auth.service';
 import { onboardingStorage } from '@/shared/lib/onboardingStorage';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 export default function TabLayout() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     (async () => {
       try {
         const perfil = await authService.getProfile();
@@ -22,13 +25,14 @@ export default function TabLayout() {
           return;
         }
       } catch {
-        // Si falla la verificación, continúa normalmente (no bloqueamos el acceso)
       } finally {
         setChecked(true);
       }
     })();
-  }, []);
+  }, [isAuthenticated]);
 
+  if (isLoading) return null;
+  if (!isAuthenticated) return null;
   if (!checked) return null;
 
   return (

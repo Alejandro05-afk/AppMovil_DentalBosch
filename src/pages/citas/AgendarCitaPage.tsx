@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '@/entities/auth/api/auth.service';
 import { citasService } from '@/entities/citas/api/citas.service';
 import { DoctorItem } from '@/entities/citas/model/citas.types';
 import { apiClient } from '@/shared/api/apiClient';
-import { Button, Card, Input, DatePicker, LoadingScreen, ErrorScreen, colors, spacing } from '@/shared/ui';
+import { localNotificationService } from '@/shared/lib/localNotificationService';
+import { Button, Card, DatePicker, ErrorScreen, Input, LoadingScreen, colors, spacing } from '@/shared/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const SLOT_DURACION = 60;
@@ -214,7 +215,7 @@ export function AgendarCitaPage() {
     setIsLoading(true);
 
     try {
-      await citasService.agendarCita({
+      const cita = await citasService.agendarCita({
         paciente: pacienteId,
         doctor: doctorSel,
         fecha,
@@ -222,6 +223,21 @@ export function AgendarCitaPage() {
         horaFin,
         motivo,
       });
+
+      // Programar recordatorio local 1 hora antes de la cita
+      const doctorName = getDoctorName(doctorSelObj);
+      const perfil = await authService.getProfile();
+      const pacienteName = `${perfil.nombre} ${perfil.apellido || ''}`.trim();
+
+      await localNotificationService.scheduleAppointmentReminder(
+        cita._id,
+        fecha,
+        horaInicio,
+        pacienteName,
+        doctorName,
+        60 // 1 hora antes
+      );
+
       setFeedback({ type: 'success', message: 'Cita agendada correctamente' });
       setTimeout(() => router.replace('/'), 1500);
     } catch (error: any) {

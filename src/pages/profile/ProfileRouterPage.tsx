@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { authService } from '@/entities/auth/api/auth.service';
-import { authStorage } from '@/shared/api/authStorage';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { ProfilePage } from './ProfilePage';
 import { DoctorProfilePage } from '../doctor/DoctorProfilePage';
 import { colors } from '@/shared/ui';
 
 export function ProfileRouterPage() {
+  const { logout } = useAuth();
   const [rol, setRol] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -18,15 +18,14 @@ export function ProfileRouterPage() {
         const data = await authService.getProfile();
         setRol(data.rol);
       } catch {
-        await authStorage.removeToken();
-        router.replace('/(auth)/login');
+        await logout();
         return;
       } finally {
         setIsLoading(false);
       }
     };
     fetchRol();
-  }, []);
+  }, [logout]);
 
   if (isLoading) {
     return (

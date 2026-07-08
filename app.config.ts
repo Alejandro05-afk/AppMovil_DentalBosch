@@ -14,14 +14,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     },
     icon: "./assets/images/logo.png",
+    notification: {
+      icon: "./assets/images/notification-icon.png",
+      color: "#FF4FA3",
+    },
     plugins: [
-    //   ["@react-native-google-signin/google-signin", {
-    //     iosUrlScheme: "com.googleusercontent.apps.108646556094-ukhtgll2jcq4l3jnmrf1kh2s9c22pb8i",
-    //   }],
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-router",
     ],
     android: {
       package: 'com.dentalbosch',
       icon: "./assets/images/logo.png",
+      googleServicesFile: "./google-services.json",
     },
   };
 };

@@ -256,7 +256,7 @@ export function MisPacientesList() {
     <>
       <View style={styles.searchContainer}>
         <Input
-          placeholder="Buscar por nombre o cédula..."
+          placeholder="Buscar por nombre"
           value={searchText}
           onChangeText={handleSearchChange}
           leftIcon="search-outline"

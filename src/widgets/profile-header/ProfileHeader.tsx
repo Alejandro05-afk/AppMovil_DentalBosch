@@ -24,9 +24,6 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
             <Text style={styles.initials}>{initials}</Text>
           </View>
         )}
-        <View style={styles.editAvatarBadge}>
-          <Ionicons name="camera" size={14} color={colors.white} />
-        </View>
       </View>
 
       <Text style={styles.name}>
@@ -73,19 +70,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     color: colors.primary,
-  },
-  editAvatarBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: colors.primary,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.white,
   },
   name: {
     fontSize: 20,

@@ -1,21 +1,22 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
-  Button,
-  Card,
-  Paragraph,
-  ScrollView,
-  Separator,
-  Text,
-  XStack,
-  YStack,
+    Button,
+    Card,
+    Paragraph,
+    ScrollView,
+    Separator,
+    Text,
+    XStack,
+    YStack,
 } from 'tamagui';
 
 import { citasService } from '@/entities/citas/api/citas.service';
 import { CitaPaciente, DoctorItem } from '@/entities/citas/model/citas.types';
+import { localNotificationService } from '@/shared/lib/localNotificationService';
 import { colors, Input, LoadingScreen, spacing } from '@/shared/ui';
 
 function getEstadoInfo(estado: string | any): { texto: string; color: string } {
@@ -230,6 +231,10 @@ export function MisCitasPage() {
     setCancelError('');
     try {
       await citasService.cancelarCita(cancelCita._id, motivoCancel.trim());
+      
+      // Cancelar recordatorio local de esta cita
+      await localNotificationService.cancelAllAppointmentReminders(cancelCita._id);
+      
       setCancelModalVisible(false);
       setCancelCita(null);
       setMotivoCancel('');
@@ -390,30 +395,21 @@ export function MisCitasPage() {
                   </View>
                 ) : null}
 
-                <View style={styles.cancelActions}>
-                  <TouchableOpacity
-                    style={styles.cancelSecondaryBtn}
-                    onPress={() => setCancelModalVisible(false)}
-                    disabled={cancelLoading}
-                  >
-                    <Text color={colors.gray[600]} fontSize={15} fontWeight="800">Volver</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.cancelPrimaryBtn, cancelLoading && styles.cancelPrimaryBtnDisabled]}
-                    onPress={handleCancel}
-                    disabled={cancelLoading}
-                    activeOpacity={0.7}
-                  >
-                    {cancelLoading ? (
-                      <ActivityIndicator size="small" color={colors.white} />
-                    ) : (
-                      <>
-                        <Ionicons name="close-circle-outline" size={18} color={colors.white} />
-                        <Text color={colors.white} fontSize={15} fontWeight="900">Sí, cancelar cita</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[styles.cancelPrimaryBtn, cancelLoading && styles.cancelPrimaryBtnDisabled]}
+                  onPress={handleCancel}
+                  disabled={cancelLoading}
+                  activeOpacity={0.7}
+                >
+                  {cancelLoading ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons name="close-circle-outline" size={18} color={colors.white} />
+                      <Text color={colors.white} fontSize={15} fontWeight="900">Sí, cancelar cita</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </ScrollView>
             ) : null}
           </View>
@@ -466,20 +462,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 12,
     marginTop: spacing.sm,
-  },
-  cancelActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  cancelSecondaryBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.gray[300],
   },
   cancelPrimaryBtn: {
     flex: 1,
