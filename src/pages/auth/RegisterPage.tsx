@@ -1,5 +1,6 @@
 import { authService } from '@/entities/auth/api/auth.service';
 import { registerPushToken } from '@/shared/hooks/usePushNotifications';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import {
     birthDateSchema,
     emailSchema,
@@ -34,7 +35,7 @@ const registerSchema = z.object({
   fechaNacimiento: birthDateSchema,
   genero: z.string().min(1, 'Selecciona un género'),
   email: emailSchema,
-  telefono: z.string().min(1, 'El teléfono es obligatorio').regex(/^\d+$/, 'Solo números'),
+    telefono: z.string().min(1, 'El teléfono es obligatorio').regex(/^\d{10}$/, 'Debe tener exactamente 10 dígitos'),
   password: passwordSchema,
   confirmPassword: z.string().min(1, 'Debes confirmar tu contraseña'),
   direccion: z.object({
@@ -44,7 +45,7 @@ const registerSchema = z.object({
   }),
   contactoEmergencia: z.object({
     nombre: z.string().min(1, 'El nombre es obligatorio').refine((val) => !/\d/.test(val), 'El nombre no puede contener números'),
-    telefono: z.string().min(1, 'El teléfono es obligatorio').regex(/^\d+$/, 'Solo números'),
+  telefono: z.string().min(1, 'El teléfono es obligatorio').regex(/^\d{10}$/, 'Debe tener exactamente 10 dígitos'),
     parentesco: z.string().min(1, 'El parentesco es obligatorio'),
   }),
 }).refine((data) => data.password === data.confirmPassword, {

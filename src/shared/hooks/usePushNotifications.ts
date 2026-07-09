@@ -25,7 +25,7 @@ export function usePushNotifications() {
 
         if (!mounted) return;
 
-        const { default: notificationService } = await import('../lib/notificationService');
+        const { notificationService } = await import('../lib/notificationService');
 
         notificationService.registerForPushNotificationsAsync().then(async (token: string | null) => {
           if (!mounted) return;
@@ -89,7 +89,7 @@ export function usePushNotifications() {
 export async function registerPushToken() {
   if (isExpoGo) return null;
 
-  const { default: notificationService } = await import('../lib/notificationService');
+  const { notificationService } = await import('../lib/notificationService');
   const token = await notificationService.registerForPushNotificationsAsync();
   if (!token) return null;
 
