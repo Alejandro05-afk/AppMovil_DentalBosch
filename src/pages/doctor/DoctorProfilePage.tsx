@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '@/entities/auth/api/auth.service';
 import { DoctorProfile } from '@/entities/doctor/model/doctor.types';
 import { Card, Button, colors, spacing } from '@/shared/ui';
@@ -11,6 +11,7 @@ import { EditDoctorForm } from '@/features/doctor';
 const DIAS_ORDEN = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
 export function DoctorProfilePage() {
+  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -80,9 +81,10 @@ export function DoctorProfilePage() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           {isEditing ? (
             <EditDoctorForm initialData={profile} onSave={handleSave} isLoading={isLoading} />
           ) : (

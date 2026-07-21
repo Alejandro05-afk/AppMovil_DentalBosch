@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const SLOT_DURACION = 60;
@@ -36,6 +36,7 @@ function sumarMinutos(hora: string, minutos: number): string {
 }
 
 export function AgendarCitaPage() {
+  const insets = useSafeAreaInsets();
   const [pageState, setPageState] = useState<'loading' | 'no-acceso' | 'error' | 'ready'>('loading');
   const [pacienteId, setPacienteId] = useState('');
   const [doctores, setDoctores] = useState<DoctorItem[]>([]);
@@ -295,9 +296,10 @@ export function AgendarCitaPage() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <Card variant="elevated" style={styles.card}>
             <View style={styles.sectionHeader}>
               <Ionicons name="calendar" size={20} color={colors.primary} />
@@ -321,7 +323,7 @@ export function AgendarCitaPage() {
                     <Ionicons name="close" size={24} color={colors.dark} />
                   </TouchableOpacity>
                 </View>
-                <ScrollView style={styles.pickerList}>
+                <ScrollView style={styles.pickerList} nestedScrollEnabled>
                   {doctores.map((d) => (
                     <TouchableOpacity
                       key={d._id}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useForm } from '@tanstack/react-form';
 import { Input, Button, colors, spacing, Card } from '@/shared/ui';
@@ -20,9 +20,9 @@ import { authService } from '@/entities/auth/api/auth.service';
 export function ResetPasswordPage() {
   const params = useLocalSearchParams();
   const code = (params.code as string) || '';
+  const insets = useSafeAreaInsets();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [showRules, setShowRules] = useState(true);
 
   const form = useForm({
     defaultValues: {
@@ -66,37 +66,17 @@ export function ResetPasswordPage() {
     },
   });
 
-  const newPassword = form.getFieldValue('newPassword');
-
-  const passwordStrength = useMemo(() => {
-    if (!newPassword) return 0;
-    const passed = PASSWORD_RULES.filter((rule) => rule.test(newPassword)).length;
-    return (passed / PASSWORD_RULES.length) * 100;
-  }, [newPassword]);
-
-  const strengthColor = useMemo(() => {
-    if (passwordStrength <= 25) return colors.danger;
-    if (passwordStrength <= 50) return colors.warning;
-    if (passwordStrength <= 75) return colors.secondary;
-    return colors.success;
-  }, [passwordStrength]);
-
-  const strengthLabel = useMemo(() => {
-    if (passwordStrength <= 25) return 'Débil';
-    if (passwordStrength <= 50) return 'Regular';
-    if (passwordStrength <= 75) return 'Buena';
-    return 'Fuerte';
-  }, [passwordStrength]);
-
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <View style={styles.pageContent}>
             <TouchableOpacity style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/login')}>
@@ -130,21 +110,55 @@ export function ResetPasswordPage() {
                 )}
               />
 
-              {newPassword.length > 0 && showRules && (
-                <View style={styles.strengthContainer}>
-                  <View style={styles.strengthBarBg}>
-                    <View
-                      style={[
-                        styles.strengthBarFill,
-                        { width: `${passwordStrength}%`, backgroundColor: strengthColor },
-                      ]}
-                    />
-                  </View>
-                  <Text style={[styles.strengthLabel, { color: strengthColor }]}>
-                    {strengthLabel}
-                  </Text>
-                </View>
-              )}
+              <form.Subscribe
+                selector={(state) => state.values.newPassword}
+                children={(pw) => {
+                  const passed = PASSWORD_RULES.filter((rule) => rule.test(pw)).length;
+                  const strength = (passed / PASSWORD_RULES.length) * 100;
+                  const sColor = strength <= 25 ? colors.danger : strength <= 50 ? colors.warning : strength <= 75 ? colors.secondary : colors.success;
+                  const sLabel = strength <= 25 ? 'Débil' : strength <= 50 ? 'Regular' : strength <= 75 ? 'Buena' : 'Fuerte';
+                  return (
+                    <>
+                      {pw.length > 0 && (
+                        <View style={styles.strengthContainer}>
+                          <View style={styles.strengthBarBg}>
+                            <View
+                              style={[
+                                styles.strengthBarFill,
+                                { width: `${strength}%`, backgroundColor: sColor },
+                              ]}
+                            />
+                          </View>
+                          <Text style={[styles.strengthLabel, { color: sColor }]}>
+                            {sLabel}
+                          </Text>
+                        </View>
+                      )}
+                      <Card variant="outlined" style={styles.rulesCard}>
+                        {pw.length === 0 && (
+                          <Text style={styles.rulesTitle}>Requisitos de seguridad:</Text>
+                        )}
+                        {PASSWORD_RULES.map((rule, index) => {
+                          const rulePassed = pw.length > 0 ? rule.test(pw) : false;
+                          return (
+                            <View key={index} style={styles.ruleRow}>
+                              <Ionicons
+                                name={pw.length > 0 ? (rulePassed ? 'checkmark-circle' : 'close-circle') : 'ellipse-outline'}
+                                size={pw.length > 0 ? 16 : 10}
+                                color={pw.length > 0 ? (rulePassed ? colors.success : colors.gray[300]) : colors.gray[400]}
+                                style={styles.ruleDot}
+                              />
+                              <Text style={[styles.ruleText, rulePassed && styles.rulePassed]}>
+                                {rule.label}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </Card>
+                    </>
+                  );
+                }}
+              />
 
               <form.Field
                 name="confirmPassword"
@@ -179,58 +193,6 @@ export function ResetPasswordPage() {
                 )}
               />
             </Card>
-
-            <TouchableOpacity
-              style={styles.rulesToggle}
-              onPress={() => setShowRules((prev) => !prev)}
-            >
-              <Ionicons
-                name={showRules ? 'chevron-down' : 'chevron-forward'}
-                size={18}
-                color={colors.gray[500]}
-              />
-              <Text style={styles.rulesToggleText}>
-                {showRules ? 'Ocultar' : 'Ver'} requisitos de contraseña
-              </Text>
-            </TouchableOpacity>
-
-            {showRules && newPassword.length === 0 && (
-              <Card variant="outlined" style={styles.rulesCard}>
-                <Text style={styles.rulesTitle}>Requisitos de seguridad:</Text>
-                {PASSWORD_RULES.map((rule, index) => (
-                  <View key={index} style={styles.ruleRow}>
-                    <Ionicons
-                      name="ellipse-outline"
-                      size={10}
-                      color={colors.gray[400]}
-                      style={styles.ruleDot}
-                    />
-                    <Text style={styles.ruleText}>{rule.label}</Text>
-                  </View>
-                ))}
-              </Card>
-            )}
-
-            {showRules && newPassword.length > 0 && (
-              <Card variant="outlined" style={styles.rulesCard}>
-                {PASSWORD_RULES.map((rule, index) => {
-                  const passed = rule.test(newPassword);
-                  return (
-                    <View key={index} style={styles.ruleRow}>
-                      <Ionicons
-                        name={passed ? 'checkmark-circle' : 'close-circle'}
-                        size={16}
-                        color={passed ? colors.success : colors.gray[300]}
-                        style={styles.ruleDot}
-                      />
-                      <Text style={[styles.ruleText, passed && styles.rulePassed]}>
-                        {rule.label}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </Card>
-            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -314,17 +276,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 55,
     textAlign: 'right',
-  },
-  rulesToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.lg,
-    gap: 4,
-  },
-  rulesToggleText: {
-    fontSize: 13,
-    color: colors.gray[500],
   },
   rulesCard: {
     marginTop: spacing.md,

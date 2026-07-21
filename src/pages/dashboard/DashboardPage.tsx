@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RefreshControl, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Button,
     Card,
@@ -38,6 +38,7 @@ function getEstadoInfo(estado: string | any): { texto: string; color: string } {
 
 export function DashboardPage() {
   const { logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [citas, setCitas] = useState<CitaPaciente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,10 +95,16 @@ export function DashboardPage() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView
-        flex={1}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
+      >
+        <ScrollView
+          flex={1}
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="interactive"
+          refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
@@ -265,6 +272,7 @@ export function DashboardPage() {
           ) : null}
         </YStack>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

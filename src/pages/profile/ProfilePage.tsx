@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Text } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '@/entities/auth/api/auth.service';
 import { UserProfile } from '@/entities/user/model/user.types';
 import { ProfileHeader } from '@/widgets/profile-header/ProfileHeader';
@@ -10,6 +10,7 @@ import { ProfileView, EditProfileForm, EditProfileFormData } from '@/features/pr
 import { Button, colors, spacing } from '@/shared/ui';
 
 export function ProfilePage() {
+  const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,11 +73,13 @@ export function ProfilePage() {
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {!isEditing && <ProfileHeader profile={profile} />}
           

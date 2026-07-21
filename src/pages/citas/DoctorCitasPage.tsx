@@ -139,7 +139,7 @@ export function DoctorCitasPage() {
           <View style={{ width: 44 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.dayContent}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.dayContent}>
           {citasDelDia.length === 0 ? (
             <View style={styles.dayEmpty}>
               <Ionicons name="calendar-outline" size={48} color={colors.gray[200]} />

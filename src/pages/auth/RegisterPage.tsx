@@ -22,11 +22,19 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 const GENDERS = ['masculino', 'femenino', 'otro'];
-const PARENTESCOS = ['madre', 'padre', 'hermano/a', 'esposo/a', 'hijo/a', 'otro'];
+const PARENTESCOS = ['madre', 'padre', 'hermano', 'esposo', 'hijo', 'otro'];
+const PARENTESCO_LABELS: Record<string, string> = {
+  madre: 'Madre',
+  padre: 'Padre',
+  hermano: 'Hermano/a',
+  esposo: 'Esposo/a',
+  hijo: 'Hijo/a',
+  otro: 'Otro',
+};
 
 const registerSchema = z.object({
   nombre: z.string().min(2, 'El nombre es muy corto').refine((val) => !/\d/.test(val), 'El nombre no puede contener números'),
@@ -55,10 +63,10 @@ const registerSchema = z.object({
 
 export function RegisterPage() {
   const { login } = useAuth();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [showParentescoPicker, setShowParentescoPicker] = useState(false);
-  const [showPasswordRules, setShowPasswordRules] = useState(true);
 
   const form = useForm({
     defaultValues: {
@@ -130,34 +138,20 @@ export function RegisterPage() {
         }
       } catch (error: any) {
         console.error('Register error:', error);
-        Alert.alert('Error', error.response?.data?.mensaje || 'Error al crear la cuenta');
+        const msg = error.response?.data?.mensaje || '';
+        const title = 'Error';
+        let body = 'Ocurrió un error al crear tu cuenta. Intenta nuevamente.';
+        if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('correo')) {
+          body = 'Este correo electrónico ya está registrado. Intenta con otro o inicia sesión.';
+        } else if (msg) {
+          body = msg;
+        }
+        Alert.alert(title, body);
       } finally {
         setIsLoading(false);
       }
     },
   });
-
-  const password = form.getFieldValue('password');
-
-  const passwordStrength = useMemo(() => {
-    if (!password) return 0;
-    const passed = PASSWORD_RULES.filter((rule) => rule.test(password)).length;
-    return (passed / PASSWORD_RULES.length) * 100;
-  }, [password]);
-
-  const strengthColor = useMemo(() => {
-    if (passwordStrength <= 25) return colors.danger;
-    if (passwordStrength <= 50) return colors.warning;
-    if (passwordStrength <= 75) return colors.secondary;
-    return colors.success;
-  }, [passwordStrength]);
-
-  const strengthLabel = useMemo(() => {
-    if (passwordStrength <= 25) return 'Débil';
-    if (passwordStrength <= 50) return 'Regular';
-    if (passwordStrength <= 75) return 'Buena';
-    return 'Fuerte';
-  }, [passwordStrength]);
 
   const maxBirthDate = useMemo(() => {
     const d = new Date();
@@ -175,11 +169,13 @@ export function RegisterPage() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <View style={styles.pageContent}>
             <TouchableOpacity style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/(auth)/login')}>
@@ -237,6 +233,7 @@ export function RegisterPage() {
                     onChangeText={field.handleChange}
                     onBlur={field.handleBlur}
                     keyboardType="numeric"
+                    maxLength={10}
                     leftIcon="card-outline"
                     error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : undefined}
                   />
@@ -356,6 +353,7 @@ export function RegisterPage() {
                     onChangeText={field.handleChange}
                     onBlur={field.handleBlur}
                     keyboardType="phone-pad"
+                    maxLength={10}
                     leftIcon="call-outline"
                     error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : undefined}
                   />
@@ -378,21 +376,51 @@ export function RegisterPage() {
                 )}
               />
 
-              {password.length > 0 && showPasswordRules && (
-                <View style={styles.strengthContainer}>
-                  <View style={styles.strengthBarBg}>
-                    <View
-                      style={[
-                        styles.strengthBarFill,
-                        { width: `${passwordStrength}%`, backgroundColor: strengthColor },
-                      ]}
-                    />
-                  </View>
-                  <Text style={[styles.strengthLabel, { color: strengthColor }]}>
-                    {strengthLabel}
-                  </Text>
-                </View>
-              )}
+              <form.Subscribe
+                selector={(state) => state.values.password}
+                children={(pw) => {
+                  if (!pw) return null;
+                  const passed = PASSWORD_RULES.filter((rule) => rule.test(pw)).length;
+                  const strength = (passed / PASSWORD_RULES.length) * 100;
+                  const sColor = strength <= 25 ? colors.danger : strength <= 50 ? colors.warning : strength <= 75 ? colors.secondary : colors.success;
+                  const sLabel = strength <= 25 ? 'Débil' : strength <= 50 ? 'Regular' : strength <= 75 ? 'Buena' : 'Fuerte';
+                  return (
+                    <>
+                      <View style={styles.strengthContainer}>
+                        <View style={styles.strengthBarBg}>
+                          <View
+                            style={[
+                              styles.strengthBarFill,
+                              { width: `${strength}%`, backgroundColor: sColor },
+                            ]}
+                          />
+                        </View>
+                        <Text style={[styles.strengthLabel, { color: sColor }]}>
+                          {sLabel}
+                        </Text>
+                      </View>
+                      <View style={styles.rulesList}>
+                        {PASSWORD_RULES.map((rule, index) => {
+                          const rulePassed = rule.test(pw);
+                          return (
+                            <View key={index} style={styles.ruleRow}>
+                              <Ionicons
+                                name={rulePassed ? 'checkmark-circle' : 'close-circle'}
+                                size={16}
+                                color={rulePassed ? colors.success : colors.gray[300]}
+                                style={styles.ruleDot}
+                              />
+                              <Text style={[styles.ruleText, rulePassed && styles.rulePassed]}>
+                                {rule.label}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </>
+                  );
+                }}
+              />
 
               <form.Field
                 name="confirmPassword"
@@ -409,41 +437,6 @@ export function RegisterPage() {
                   />
                 )}
               />
-
-              <TouchableOpacity
-                style={styles.rulesToggle}
-                onPress={() => setShowPasswordRules((prev) => !prev)}
-              >
-                <Ionicons
-                  name={showPasswordRules ? 'chevron-down' : 'chevron-forward'}
-                  size={18}
-                  color={colors.gray[500]}
-                />
-                <Text style={styles.rulesToggleText}>
-                  {showPasswordRules ? 'Ocultar' : 'Ver'} requisitos
-                </Text>
-              </TouchableOpacity>
-
-              {showPasswordRules && password.length > 0 && (
-                <View style={styles.rulesList}>
-                  {PASSWORD_RULES.map((rule, index) => {
-                    const passed = rule.test(password);
-                    return (
-                      <View key={index} style={styles.ruleRow}>
-                        <Ionicons
-                          name={passed ? 'checkmark-circle' : 'close-circle'}
-                          size={16}
-                          color={passed ? colors.success : colors.gray[300]}
-                          style={styles.ruleDot}
-                        />
-                        <Text style={[styles.ruleText, passed && styles.rulePassed]}>
-                          {rule.label}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
             </Card>
 
             <Card variant="elevated" style={styles.sectionCard}>
@@ -529,6 +522,7 @@ export function RegisterPage() {
                     onChangeText={field.handleChange}
                     onBlur={field.handleBlur}
                     keyboardType="phone-pad"
+                    maxLength={10}
                     leftIcon="call-outline"
                     error={field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : undefined}
                   />
@@ -554,7 +548,7 @@ export function RegisterPage() {
                       <Ionicons name="people-outline" size={20} color={colors.gray[400]} />
                       <Text style={[styles.inputText, !field.state.value && styles.placeholderText]}>
                         {field.state.value
-                          ? field.state.value.charAt(0).toUpperCase() + field.state.value.slice(1)
+                          ? PARENTESCO_LABELS[field.state.value] || field.state.value
                           : 'Seleccionar parentesco'}
                       </Text>
                       <Ionicons name="chevron-down" size={18} color={colors.gray[400]} />
@@ -589,7 +583,7 @@ export function RegisterPage() {
                               color={field.state.value === p ? colors.primary : colors.gray[400]}
                             />
                             <Text style={[styles.genderOptionText, field.state.value === p && styles.genderOptionTextSelected]}>
-                              {p.charAt(0).toUpperCase() + p.slice(1)}
+                              {PARENTESCO_LABELS[p] || p}
                             </Text>
                           </TouchableOpacity>
                         ))}
@@ -819,17 +813,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 55,
     textAlign: 'right',
-  },
-  rulesToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-    gap: 4,
-  },
-  rulesToggleText: {
-    fontSize: 13,
-    color: colors.gray[500],
   },
   rulesList: {
     marginTop: spacing.md,
